@@ -71,7 +71,9 @@ class DSPO_wide(DSPO):
                 )
                 sum_mnl += exp(util + state[0].incentiveSensitivity * (pp_costs[idx] - self.revenue))
 
-        lambertw0 = (lambertw(sum_mnl / e).real + 1.0) / state[0].incentiveSensitivity
+        lambertw0 = (
+            lambertw(self.adjust_lambert_sum_for_external_option(sum_mnl) / e).real + 1.0
+        ) / state[0].incentiveSensitivity
 
         a_hat = np.zeros(len(pps) + 1)
         a_hat[0] = homeCosts - self.revenue - lambertw0
