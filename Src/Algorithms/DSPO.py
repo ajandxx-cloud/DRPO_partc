@@ -130,7 +130,7 @@ class DSPO(Agent):
                 pps = mask[mask.mask].data
             else:
                 pps = state[2]["parcelpoints"]
-            pp_costs= np.full((len(pps),1),1000000000.0)
+            pp_costs= np.full(len(pps),1000000000.0)
             
             #ML preds
             cur_feat = self.get_feature_rep_infer(state[1]["fleet"])
