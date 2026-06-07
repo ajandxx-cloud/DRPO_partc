@@ -44,7 +44,7 @@ class Solver:
                 step += 1
                 if step >= self.max_steps or done:
                     travel_time = self.model.update_route(route_data, state, True)
-                    reward = -Utils.total_costs(stats[1], stats[2], travel_time, stats[3], stats[6], self.config)
+                    reward = -((stats[2] + travel_time) * ((self.config.driver_wage + self.config.fuel_cost) / 3600) + sum(stats[3]) - sum(stats[6]))
                     loss_actor, loss_critic = self.model.update(
                         self.env.abstract_state_ppo(state), action, a_hat, reward,
                         self.env.abstract_state_ppo(new_state), done
