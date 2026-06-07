@@ -61,23 +61,51 @@ On the first level you can see a parser.py, wherein we set hyperparameters and e
 * env_utils.py: some utility functions related to the environment.
 * Parcelpoint_py.py:the main problem implementation, following Gymnasium implementation structure mainly.
 
+## External / no-purchase option
+
+Customers can now choose an explicit external option, which represents leaving the platform or using another travel/delivery alternative. The option is enabled by default through `--external_option=True` and uses
+
+```
+U_external = external_base_util - external_price_sensitivity * external_price
+```
+
+The default `external_price_sensitivity` is `-incentive_sens`, so with the default `--incentive_sens=-0.25`, the outside-option utility is `external_base_util - 0.25 * external_price`.
+
+This outside option affects both the realized customer choice model and the pricing formulas:
+
+* `customerchoice.py` includes the external utility in the MNL draw, so a customer may return `loc=None` and exit instead of selecting home delivery or a parcel point.
+* `Parcelpoint_py.py` skips route insertion, capacity updates, and revenue/discount accounting for external choices.
+* `DSPO`, `DSPO_wide`, `DSPO_PLUS`, `DSPO_PLUS_wide`, and `Heuristic` scale the Lambert-W pricing term by `exp(U_external)`, so high prices reduce the probability of internal acceptance rather than assuming every passenger must choose an internal option.
+* `Baseline` clips its fixed prices to `[min_price, max_price]` for consistency with the pricing constraints.
+
+Useful command-line parameters:
+
+```
+--external_option True
+--external_base_util 0.0
+--external_price 0.0
+--external_price_sensitivity 0.25
+```
+
+Set `--external_option False` to recover the previous realized-choice behavior.
+
 
 ## To the make the code work
 
  * Create a local python environment by subsequently executing the following commands in the root folder
-	* `python3 -m venv venv`
-	* `source venv/bin/activate`
-	* `python -m pip install -r requirements.txt`
-	* `deactivate`
+ 	* `python3 -m venv venv`
+ 	* `source venv/bin/activate`
+ 	* `python -m pip install -r requirements.txt`
+ 	* `deactivate`
 
  * `Src/parser.py` Set your study's hyperparameters in this file.
- 
+  
  * `run.py` Execute this file using the command line `python3 run.py`. Run the PPO algorithm with `python3 run_ppo.py`
- 
+  
  * Note that you might have to adapt your root folder's name to `ooh_code`
- 
+  
  * Note that `hygese.py` requires a slight change to one source file when running with `--load_data=True`, this change is indicated when running the code
- 
+  
 ## Contributing
 
 If you have proposed extensions to this codebase, feel free to do a pull request! If you experience issues, feel free to send us an email.
@@ -99,4 +127,3 @@ Daniel Merchan, Jatin Arora, Julian Pachon, Karthik Konduri, Matthias Winkenbach
 Schulman, J., Wolski, F., Dhariwal, P., Radford, A. & Klimov, O. (2017). Proximal Policy Optimization Algorithms.
 
 Yang, X., Strauss, A., Currie, C., & Eglese, R. (2016). Choice-Based Demand Management and Vehicle Routing in E-Fulfillment. Transportation Science, 50(2), 473-488.
-
