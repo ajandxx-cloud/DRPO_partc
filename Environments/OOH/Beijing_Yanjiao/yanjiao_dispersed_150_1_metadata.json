@@ -1,0 +1,35 @@
+{
+  "instance": "Beijing_Yanjiao",
+  "scenario": "Yanjiao-Guomao many-to-one commuter DRT",
+  "variant": "dispersed",
+  "variant_description": "Grid-uniform home sampling with large perturbation for cost heterogeneity.",
+  "seed": 1,
+  "passengers": 150,
+  "n_meeting_points": 100,
+  "k_nearest": 10,
+  "perturbation_sigma": 0.003,
+  "perturbation_max": 0.006,
+  "home_edge_share": 0.4,
+  "mp_edge_share": 0.3,
+  "density_radius": 0.005,
+  "depot": {
+    "name": "郎家园/国贸",
+    "lon": 116.461,
+    "lat": 39.9087
+  },
+  "coordinate_system": "relative_projection",
+  "projection": "relative",
+  "bounds": {
+    "lon_min": 116.456,
+    "lon_max": 117.050923,
+    "lat_min": 39.8921543251202,
+    "lat_max": 39.98888917542386,
+    "rel_range": 60.0
+  },
+  "data_sources": {
+    "residential_pois": "Amap POI 2.0 (120300/120302/120303/120304)",
+    "bus_stops": "Amap POI 2.0 (150700)",
+    "key_stops": "Customized commuter bus + 818 route keyword search"
+  },
+  "generation_method": "Residential POI density-weighted sampling + Gaussian perturbation"
+}

@@ -1,0 +1,45 @@
+{
+  "instance": "Beijing_Yanjiao_Corridor",
+  "scenario": "Corridor-spread Yanjiao-Guomao commuter DRT (Beijing_bus style)",
+  "variant": "corridor",
+  "seed": 0,
+  "passengers": 240,
+  "n_meeting_points": 100,
+  "k_nearest": 10,
+  "coordinate_system": "beijing_bus_style_normalized",
+  "depot": {
+    "name": "Guomao",
+    "lon": 116.461,
+    "lat": 39.9087
+  },
+  "bounds": {
+    "coordinate_unit": "beijing_bus_normalized_unit",
+    "x_span_target": 55.51,
+    "y_span_target": 28.82,
+    "raw_x_max_km": 51007.70739311864,
+    "raw_y_max_km": 8012.546731170103,
+    "x_scale": 0.0010882669078259486,
+    "y_scale": 0.003596858897294856
+  },
+  "diagnostics": {
+    "bbox_x_span": 55.51,
+    "bbox_y_span": 28.82,
+    "bbox_ratio": 1.926092990978487,
+    "all_customer_mp_distance_mean": 20.147944671288812,
+    "chosen_distance_mean": 11.866870486416925,
+    "chosen_distance_p50": 6.394524948696319,
+    "chosen_distance_p90": 31.326724669475407,
+    "adjacency_unique_rows": 176,
+    "adjacency_rows": 240,
+    "mp_zones": {
+      "cbd": 29,
+      "tongzhou": 34,
+      "yanjiao": 37
+    }
+  },
+  "generation_method": "Corridor2-spread instance: 240 homes uniformly sampled via grid from residential POIs along the Guomao-Tongzhou-Yanjiao corridor, ~100 meeting points selected globally from bus stops using quality-ranked greedy diversity with 1.0 km min separation. Beijing_bus-style 55.51x28.82 normalized projection.",
+  "data_sources": {
+    "residential_pois": "data/corridor/corridor_residential_pois.csv",
+    "bus_stops": "data/corridor/corridor_bus_stops.csv"
+  }
+}

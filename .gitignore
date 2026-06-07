@@ -1,0 +1,15 @@
+# IDE
+.idea
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Experiments / model checkpoints
+Experiments/
+
+# OS files
+.DS_Store
+Thumbs.db

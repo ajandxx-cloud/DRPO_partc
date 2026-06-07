@@ -1,0 +1,1400 @@
+--- Page 1 ---
+ 
+Contents lists available at ScienceDirect
+Transportation Research Part C
+journal homepage: www.elsevier.com/locate/trc
+ 
+Decision-focused learning for optimal subsidy allocation in 
+ride-hailing services$
+Jiaqi Yang a, Lexiao Chen a, Zicheng Su a
+,∗, Wanjing Ma a, Zhichao Zou b, Kun An a
+,∗
+a The Key Laboratory of Road and Traffic Engineering of the Ministry of Education, Tongji University, 4800 Cao’an 
+Road, Shanghai 201804, China
+b Didi Chuxing, Beijing, China
+A R T I C L E  I N F O
+Keywords:
+Subsidy allocation
+Decision-focused learning
+Smart predict-then-optimize
+Surrogate loss function
+Ride-hailing services
+ 
+A B S T R A C T
+Effective subsidy strategies are essential for ride-hailing platforms. The key is to accurately 
+predict trip completion rates before determining the optimal subsidy decision. However, the 
+classic predict-then-optimize framework often falls short due to discrepancies between the 
+prediction model, which minimizes fitting error, and the decision model, which minimizes 
+decision error. To tackle the above issues, this paper presents a decision-focused learning 
+(DFL) approach for optimal subsidy allocation in ride-hailing services at the city level. First, 
+we formulate the subsidy allocation as a bi-level optimization problem, in which the lower-
+level individual distribution can be approximated via a threshold-based strategy. Moreover, 
+the effect of the subsidy is explicitly modeled, which considers the combined impacts of 
+both pricing and matching aspects. Second, the prediction model for the completion rate is 
+trained to directly minimize downstream decision loss, integrating the prediction module and 
+optimization task in an end-to-end manner. To address the challenge of conducting gradient 
+backpropagation from the decision model to the prediction model, we utilize a surrogate 
+decision-focused loss function, whose convexity in the context of the subsidy allocation problem 
+is theoretically proven. Third, we develop a decision-focused fine-tuning mechanism to handle 
+the non-differentiable prediction model, allowing any upstream prediction model to be adjusted 
+based on the downstream decision loss. The proposed DFL framework is tested on real-world 
+data from DiDi Chuxing. Results show that decision-focused learning can increase platform 
+revenue by 1.51% compared to traditional predict-then-optimize solutions, as the prediction 
+model effectively learns the weights of different cities in the decision objective.
+1. Introduction
+Ride-hailing services are reshaping the transportation system by providing convenient and reliable alternatives for travel-
+ers (Courcoubetis et al., 2024; Gao et al., 2024). For ride-hailing platforms, subsidy allocation is a crucial component of their 
+marketing strategies (Wang and Yang, 2019). On one hand, subsidies serve as an effective method for acquiring new customers and 
+retaining existing ones. On the other hand, they consume a significant portion of the operational budget for these platforms (Tang 
+et al., 2023).
+$ This article belongs to the Virtual Special Issue on "platform-based mobility".
+∗Corresponding authors.
+E-mail addresses: 2410196@tongji.edu.cn (J. Yang), 2154180@tongji.edu.cn (L. Chen), suzicheng@tongji.edu.cn (Z. Su), mawanjing@tongji.edu.cn 
+(W. Ma), zouzhichao@didiglobal.com (Z. Zou), kunan@tongji.edu.cn (K. An).
+https://doi.org/10.1016/j.trc.2025.105301
+Received 30 December 2024; Received in revised form 1 August 2025; Accepted 10 August 2025
+Transportation Research Part C 180 (2025) 105301 
+Available online 28 August 2025 
+0968-090X/© 2025 Elsevier Ltd. All rights are reserved, including those for text and data mining, AI training, and similar technologies. 
+
+
+--- Page 2 ---
+J. Yang et al.
+Fig. 1. Multi-level process for subsidy allocation in ride-hailing platforms.
+The subsidy allocation for ride-hailing services is typically a multi-level process, as illustrated in Fig. 1. For instance, in DiDi’s 
+operations, subsidies are initially distributed across a set of cities or regions within a specified daily budget. Within each city, the 
+allocation is further divided by time periods, ultimately leading to individual-level subsidies in the form of coupons received by 
+passengers when using the service. Within the pipeline, the macroscopic allocation at the city level is crucial, as it incorporates the 
+characteristics and prior knowledge of each city into the decision-making process (Asadpour et al., 2020). Moreover, the macroscopic 
+distribution also enables subsequent procedures to operate within a smaller decision space, thereby reducing the complexity of 
+individual-level subsidy allocation tasks (Wu et al., 2022; Liu and Hou, 2023; Yan et al., 2023). However, current studies on subsidy 
+allocation primarily focus on the individual level for drivers or passengers (e.g., Zhu et al., 2021; Tafreshian and Masoud, 2022), 
+neglecting the aggregated perspective. Therefore, it is essential to develop an effective subsidy allocation strategy for ride-hailing 
+platforms from a macroscopic viewpoint, particularly at the city level.
+There are three main challenges for deriving the optimal subsidy allocation decisions at the city level. The first is to accurately 
+measure the impact of subsidies on the system dynamics considering passenger behaviors (Mo et al., 2020; Liu et al., 2023). One 
+common approach for modeling the effects of subsidies is to assume a constant conversion rate. For example, Albert and Goldenberg 
+(2022) use a static uplift model to measure the outcome of subsidies on revenue for an e-commerce platform. Similarly, Wang 
+et al. (2023) adopt a multi-treatment effect estimation model with monotonic constraints to assess user responsiveness to online 
+bonuses. However, the workflow of ride-hailing services involves a complex pipeline, including bubbling, order requests, vehicle 
+dispatch, and completion, with passenger behavior influenced by multiple factors (Tirachini, 2020). Consequently, it is essential to 
+accurately predict the effects of subsidies on ride-hailing services across different cities with heterogeneous features. Based on these 
+predictions, optimal subsidy decisions can then be derived. This falls into the category of the classic two-stage predict-then-optimize 
+problem (Bertsimas and Kallus, 2020).
+Secondly, it is crucial to address the mismatch between the upstream prediction model and the downstream optimization task due 
+to differing objectives. A typical solution for the upstream prediction model involves training with generalized loss functions, such 
+as Mean Squared Error (MSE), to minimize fitting error. This process is referred to as Prediction-focused Learning (PFL; Mandi et al., 
+2023). However, a better prediction in terms of reduced fitting error does not necessarily guarantee better decisions (Donti et al., 
+2017). In other words, the decision performance driven by the PFL framework cannot be improved in a ‘‘closed-loop’’. Recently, 
+a novel approach known as Decision-focused Learning (DFL), also referred to as Smart Predict-Then-Optimize (SPO), has emerged 
+as a promising solution to this obstacle. The core idea is to train the prediction model directly using the downstream decision 
+loss, effectively bridging the gap between the prediction and decision models (Sadana et al., 2024). Specifically, the decision loss 
+represents the cost (regret) incurred by biased predictions compared to the ground truth (Elmachtoub and Grigas, 2022). It is 
+noteworthy that DFL has demonstrated its competence across various domains, including maritime transportation (Tian et al., 2023), 
+bike relocation (Chang et al., 2023), and power systems (Li et al., 2024). Therefore, it is promising to develop a DFL-based subsidy 
+allocation framework for ride-hailing platforms.
+The third challenge is to develop an appropriate DFL framework for subsidy allocation in ride-hailing platforms, especially when 
+dealing with non-differentiable prediction models. Mainstream training schemes for DFL primarily focus on first-order gradient-based 
+methods (e.g., Amos and Kolter, 2017; Agrawal et al., 2019; Elmachtoub and Grigas, 2022; Berthet et al., 2020). However, some 
+well-established prediction models, such as tree-based models, are non-differentiable (Breiman, 2001). Additionally, in ride-hailing 
+platforms, white-box or semi-black-box simulation models are commonly used for prediction (Banerjee et al., 2020; Wu et al., 
+2022), as these models can explicitly provide state transitions between variables and offer robust estimates based on physical laws. 
+Nonetheless, it remains unclear how to effectively apply DFL in scenarios involving non-differentiable backbones.
+Transportation Research Part C 180 (2025) 105301 
+2 
+
+
+--- Page 3 ---
+J. Yang et al.
+Table 1
+Nomenclature.
+ Notation
+Definition
+ 
+ Set
+ = {1, 2, … 𝑖, … , 𝐼}
+Set of cities
+ 
+ = {1, 2, … , 𝑡, … , 𝑇}
+Set of days
+ 
+ = {1, 2, … , 𝑗, … , 𝐽}
+Set of passengers in a city
+ 
+ Parameter
+ ̄𝐺𝑖
+The GMV of city 𝑖 when there is no subsidy
+ 
+ 𝑝𝑖
+The net profit margin of city 𝑖
+ 
+ 𝜆
+Weight of the cost-related objective in objective function
+ 
+ 𝐵
+The total budget of all cities one day
+ 
+ 𝑟𝑙𝑏
+The lower bound of the subsidy rate for all cities
+ 
+ 𝑟𝑢𝑏
+The upper bound of the subsidy rate for all cities
+ 
+ 𝑣𝑖𝑗
+The average order value of user 𝑗 in city 𝑖
+ 
+ 𝑢𝑖𝑗
+The subsidy budget allocated to user 𝑗 in city 𝑖
+ 
+ 𝜏𝑖𝑗
+The expected return of subsidy for user 𝑗 in city 𝑖
+ 
+ 𝒙𝒊
+𝐷-dimensional contextual feature vector of the market environment of city 𝑖 
+ Variable
+ 𝜋𝑖𝑗
+Binary variable, 𝜋𝑖𝑗 equals to 1 if user 𝑗 in city 𝑖 receives a subsidy, 0
+ 
+ 𝑏𝑖
+The subsidy amount for city 𝑖 allocation policy for city 𝑖
+ 
+ Function
+ 𝑧(⋅, ⋅)
+The objective function of subsidy allocation problem
+ 
+ 𝐺𝑖
+The GMV of city 𝑖
+ 
+ 𝑃𝑖
+The net income of city 𝑖
+ 
+ 𝛤𝑖
+The gross bookings of city 𝑖
+ 
+ 𝑓(⋅)
+The elasticity function that reflects the improvement of the ordering rate.  
+ Predicted parameter
+ 𝑐𝑖
+The trip completion rate of city 𝑖
+ 
+ Decision variable
+ 𝑟𝑖
+The subsidy rate for city 𝑖
+ 
+ Prediction model
+ 𝑴𝜽
+Backbone prediction model with parameter 𝜽
+ 
+ 𝑭𝜶
+Bias correction model with parameter 𝜶
+ 
+To address the challenges outlined above, this paper proposes a decision-focused learning approach for optimal subsidy allocation 
+at the city level. We first formulate the subsidy allocation as a bi-level optimization problem, in which the upper level determines 
+the city-level subsidy rate and the lower level derives individual distribution plans. We then present the approximation of the 
+lower-level solution and transform the optimization task into a single level. After that, we explicitly model the effect of subsidies 
+by disentangling the transaction flow based on real-world scenarios, which allows us to consider the combined impacts of both the 
+pricing and matching aspects. Second, the prediction model for the completion rate is directly trained to minimize downstream 
+decision loss, rather than relying on generalized loss functions that minimize fitting error. In this way, the prediction module and 
+optimization task are integrated in an end-to-end manner. To address the difficulty of gradient backpropagation from the decision 
+loss to the prediction model, we utilize a surrogate loss function named SPO+ loss (Elmachtoub and Grigas, 2022), and its convexity 
+in the context of the subsidy allocation problem is theoretically proven. Third, we further develop a decision-focused fine-tuning 
+(DFF) approach to handle the non-differentiable prediction model that includes a simulation component. The fine-tuning mechanism 
+enforces the decision loss with an additional bias correction layer, embedding DFL into the predict-then-optimize pipeline without 
+directly altering the prediction model. The proposed DFL framework is tested on real-world data from DiDi. Results show that 
+decision-focused learning can improve platform revenue by 1.51% compared to traditional predict-then-optimize solutions.
+The rest of the paper is organized as follows. In Section 2, we formulate the optimization problem of the subsidy allocation 
+task. In Section 3, we introduce the transaction link decomposition of the ride-hailing platform and propose the prediction problem. 
+Section 4 presents the decision-focused learning framework, where the prediction model can be directly trained via decision loss. 
+Section 5 introduces a fine-tuning technique that can work with the non-differentiable prediction model. Section 6 discusses the 
+case study conducted using a real-world dataset from DiDi Chuxing, China. Finally, we provide conclusions and outline future work 
+in Section 7.
+2. Problem formulation
+This section discusses the city-level subsidy allocation problem based on the real-world operations of the ride-hailing platform. 
+Specifically, Section 2.1 outlines the problem settings and assumptions related to the subsidy issue. Section 2.2 formulates the 
+optimal subsidy allocation problem as a bi-level optimization model, which coordinates the macro (city) and micro (individual) 
+level subsidy policies. Section 2.3 reduces the bi-level formulation into a single-level optimization problem with a nearly optimal 
+approximation of the lower level. For clarity, the key notation is summarized in Table 1.
+Transportation Research Part C 180 (2025) 105301 
+3 
+
+
+--- Page 4 ---
+J. Yang et al.
+2.1. Problem settings
+Effective allocation of the subsidy budget among different cities at the macroscopic level is crucial for the operations of ride-
+hailing platforms. On one hand, the ride-hailing market tends to be similar within the same city, allowing passengers and drivers to 
+form natural clusters (Gomez et al., 2021; Xu et al., 2021). Therefore, analyzing the subsidy outcomes at the macroscopic level is 
+effective and straightforward. On the other hand, city-level allocation is the first step in the multi-level distribution process, as shown 
+in Fig. 1. If the allocation plan deviates from the optimum at this initial step, it could undermine the effectiveness of downstream 
+distribution plans.
+In practice, ride-hailing platforms must make daily decisions on how to allocate a fixed total budget 𝐵 across a set of cities 
+within  for a given day 𝑡 in advance. Before presenting the formulation of the optimization problem, we outline the following mild 
+assumptions to aid the analysis of the subsidy allocation problem at the city level:
+• Perfect execution of subsidy decisions: The daily subsidy allocation in each city is executed flawlessly, without accounting 
+for any implementation errors.
+• Temporal independence: The subsidy strategy applied in a city on a given day does not influence the market conditions in 
+that city on the following day.
+• Spatial independence: The ride-hailing markets in different cities operate independently, meaning that the subsidy strategy 
+implemented in one city does not impact the outcomes in other cities. This aligns with the Stable Unit Treatment Value 
+Assumption (SUTVA) used in causal inference (Rubin, 2005).
+In the following section, we will present the formulation of the optimization model. To enhance readability, we omit the 
+superscript for the index of day 𝑡 without loss of generality.
+2.2. Bi-level optimization model for subsidy allocation
+In this work, we formulate the subsidy allocation problem as a bi-level optimization model. The city-level subsidy allocation, 
+which we primarily focus on, can be regarded as the upper-level problem, while the process of allocating the given subsidy budget to 
+individual (potential) passengers within each city represents the lower-level problem. The bi-level optimization problem is defined 
+as follows: 
+𝑧(𝒓, 𝒄) =
+max
+𝒓
+∑
+𝑖∈
+(𝐺𝑖+ 𝜆𝑃𝑖
+) ,
+(1a)
+s.t.
+𝐺𝑖= 𝛷(𝑟𝑖, 𝑐𝑖, 𝜋∗
+𝑖),
+∀𝑖∈
+(1b)
+∑
+𝑖∈
+𝑏𝑖≤𝐵,
+(1c)
+𝑟𝑙𝑏≤𝑟𝑖≤𝑟𝑢𝑏,
+∀𝑖∈
+(1d)
+𝜋∗
+𝑖= arg max
+𝜋∈𝛱(𝑟𝑖) 𝛤𝑖(𝑟𝑖, 𝜋𝑖),
+∀𝑖∈
+(1e)
+where the upper-level decision variable 𝒓= {𝑟1, … , 𝑟𝑖, … , 𝑟𝐼} represents the subsidy rate for city 𝑖, and 𝝅= {𝜋1, … , 𝜋𝑖, … , 𝜋𝐼} denotes 
+the lower-level distribution plans at the individual level of city 𝑖. Moreover, 𝒄= {𝑐1, … , 𝑐𝑖, … , 𝑐𝐼} denotes the trip completion rates 
+that need to be predicted. Illustrations of each component of the bi-level formulation Eq. (1) is presented below.
+Objective functions:  In this work, the city-level subsidy allocation problem is formulated as a multi-objective problem as 
+depicted in Eq. (1a), which aims at maximizing the total Gross Merchandise Value (GMV) 𝐺𝑖 and the net income 𝑃𝑖 across all cities 
+𝑖∈. This design is based on the rationale that the GMV objective encourages increased demand through subsidies, while the net 
+income objective ensures that subsidy decisions do not lead to revenue loss. Here, 𝜆 is the trade-off parameter that balances the two 
+objectives. In real-world operations, the net income 𝑃𝑖 can be derived from the GMV as follows: 
+𝑃𝑖= 𝐺𝑖⋅𝑝𝑖,
+(2)
+where 𝑝𝑖 denotes the net profit margin of city 𝑖. Specifically, the parameter 𝑝𝑖 is associated with the characteristics of the city and 
+can be calibrated from historical data.
+In this context, the key of obtaining the objective function is to calculate the city-level GMV 𝐺𝑖, which involves defining a proper 
+form of the function 𝛷. In the literature, the GMV of ride-hailing services is calculated in various ways, ranging from individual 
+aggregations (Chen et al., 2023) to network-level approximations (Chen et al., 2024). In this work, the city-level GMV is defined as 
+the sum of a constant ̄𝐺𝑖 and a subsidy-related function 𝛥𝐺𝑖 such that: 
+𝛷(𝑟𝑖, 𝑐𝑖, 𝜋𝑖) = ̄𝐺𝑖+ 𝛥𝐺𝑖(𝑟𝑖, 𝑐𝑖, 𝜋𝑖),
+(3)
+Specifically, the constant ̄𝐺𝑖 represents the baseline volume of GMV for city 𝑖 without providing subsidies. This constant can be 
+calibrated using historical market data for each city. Moreover, 𝛥𝐺𝑖 quantifies the effect of the subsidy rate 𝑟𝑖 on the change in 
+GMV. The detailed modeling on 𝛥𝐺𝑖 is presented in Section 3.
+Transportation Research Part C 180 (2025) 105301 
+4 
+
+
+--- Page 5 ---
+J. Yang et al.
+As for the lower-level optimization problem depicted in Eq. (1e), it aims to maximize the Gross Bookings (GB) in each city 𝑖, 
+which is a measure of how much business is issued on the platform (Chen et al., 2024). The detailed formulation of the lower level 
+is provided in Section 2.3.
+Constraints on subsidy:  The constraint shown in Eq. (1c) specifies that the total subsidy amount 𝑏𝑖 for all cities must not 
+exceed the predefined budget 𝐵. Additionally, the decision variable 𝑟𝑖 is bounded by the predefined lower limit 𝑟𝑙𝑏 and upper limit 
+𝑟𝑢𝑏, as specified in Eq. (1e). Given the calibrated value ̄𝐺𝑖 for each city 𝑖, the relationship between the subsidy rate 𝑟𝑖 and the subsidy 
+amount 𝑏𝑖 is expressed as: 
+𝑏𝑖= ̄𝐺𝑖⋅𝑟𝑖,
+∀𝑖∈.
+(4)
+This indicates that the subsidy amount for city 𝑖 is calculated based on the baseline GMV volume ̄𝐺𝑖.
+By substituting Eqs. (2) and (3) into the original objective function Eq. (1a), the objective function 𝑧(⋅) becomes: 
+𝑧(𝒓, 𝒄) =
+∑
+𝑖∈
+(1 + 𝜆𝑝𝑖
+) ( ̄𝐺𝑖+ 𝛥𝐺𝑖
+) ,
+(5)
+Since ̄𝐺𝑖 is a constant and does not influence the optimality of the solution, we perform a coordinate transformation. 
+Consequently, the optimization task presented in Eq. (1) can be reformulated as: 
+max
+𝑧(𝒓, 𝒄) =
+∑
+𝑖∈
+(1 + 𝜆𝑝𝑖)𝛥𝐺𝑖,
+(6a)
+s.t.
+𝛥𝐺𝑖= 𝜙(𝑟𝑖, 𝑐𝑖, 𝜋∗
+𝑖),
+∀𝑖∈
+(6b)
+∑
+𝑖∈
+̄𝐺𝑖⋅𝑟𝑖≤𝐵,
+(6c)
+𝑟𝑙𝑏≤𝑟𝑖≤𝑟𝑢𝑏,
+∀𝑖∈
+(6d)
+𝜋∗
+𝑖= arg max
+𝜋∈𝛱(𝑟𝑖) 𝛤𝑖(𝑟𝑖, 𝜋𝑖),
+∀𝑖∈
+(6e)
+ where 𝜙 represents the function that determines the uplift in the GMV under a given subsidy policy. It is intuitive from Eq. (6) that 
+the subsidy allocation decision aims to maximize the weighted sum of the changes in GMV for all the cities. Therefore, the main 
+task is to explicitly model the effect of the subsidy on the city-wide GMV, specifically to obtain the exact form of 𝛥𝐺𝑖.
+2.3. Decomposition to single-level optimization with lower-level approximation
+Although Eq. (6) offers an elegant formulation of a bi-level optimization problem, solving it remains a challenging task. This 
+difficulty arises from the fact that the optimal solution for the lower-level individual distribution is nearly intractable. The reasons 
+are twofold: (1) Explicitly modeling individual behavior in conjunction with the subsidy policy is inherently complex. (2) Customer 
+arrivals occur sequentially and cannot be determined a priori, making it impossible to incorporate them into the city-level policy 
+decisions in advance.
+In this section, we demonstrate that, in practice, the optimal individual-level policy 𝜋∗
+𝑖 can be effectively approximated using 
+a threshold-based policy determined by the city-level subsidy rate 𝑟𝑖. Consequently, the bi-level optimization problem can be 
+approximately reformulated as a single-level optimization problem (Zhou et al., 2023).
+To begin, we consider the set of potential passengers, denoted as , within city 𝑖. Let 𝜋𝑖𝑗 represent the subsidy decision for each 
+potential passenger 𝑗. This decision is expressed as a binary variable such that:
+𝜋𝑖𝑗=
+{
+1
+if passenger 𝑗 receives a subsidy,
+0
+otherwise.
+Here, 𝜋𝑖= [𝜋𝑖𝑗] denotes the subsidy allocation policy at the individual level within city 𝑖.
+Furthermore, we define the expected value of orders, 𝑉𝑖𝑗, generated by providing a subsidy to passenger 𝑗, and the expected 
+budget (cost), 𝑈𝑖𝑗, incurred due to the subsidy, as follows:
+𝑉𝑖𝑗= E [𝑣𝑖𝑗∣𝜋𝑖𝑗= 1] −E [𝑣𝑖𝑗∣𝜋𝑖𝑗= 0] ,
+𝑈𝑖𝑗= E [𝑢𝑖𝑗∣𝜋𝑖𝑗= 1] −E [𝑢𝑖𝑗∣𝜋𝑖𝑗= 0] ,
+where 𝑣𝑖𝑗 and 𝑢𝑖𝑗 denote the average order value of passenger 𝑗 and the subsidy budget allocated to passenger 𝑗, respectively.
+In this way, the optimal subsidy allocation policy 𝜋∗
+𝑖 for each city 𝑖 can be determined by solving the following optimization 
+problem: 
+𝛤𝑖(𝑟𝑖, 𝜋𝑖) = max
+𝜋𝑖
+∑
+𝑗∈
+𝑉𝑖𝑗𝜋𝑖𝑗
+(7a)
+s.t.
+∑
+𝑗∈
+𝑈𝑖𝑗𝜋𝑖𝑗≤𝑏𝑖
+(7b)
+which aims to maximize the Gross Bookings for all potential passengers, subject to the constraint that the total subsidy does not 
+exceed the given budget 𝑏𝑖.
+Transportation Research Part C 180 (2025) 105301 
+5 
+
+
+--- Page 6 ---
+J. Yang et al.
+Fig. 2. The threshold-based strategy for the low-level subsidy allocation problem.
+It is important to note that the optimization problem outlined in Eq. (7) is a classic static knapsack problem. However, solving 
+this problem is intractable in practice due to the real-time nature of passenger bubbling, which requires immediate decision-making 
+rather than solving a static problem with given demand patterns. Consequently, a common approach is to employ a threshold-based 
+greedy algorithm to approximate the optimal solution (Hao et al., 2020). We first define the expected return of subsidy for passenger 
+𝑗 denoted as 𝜏𝑖𝑗 as follows: 
+𝜏𝑖𝑗=
+𝑉𝑖𝑗
+𝑈𝑖𝑗
+(8)
+Since the subsidy cost 𝑈𝑖𝑗 associated with each user 𝑗 is significantly smaller than the total city-level budget 𝑏𝑖, the optimal solution 
+to Eq. (7) can be approximated using a greedy solution with a threshold-based mechanism, as illustrated in Fig. 2.
+Let 𝜏∗
+𝑖(𝑟𝑖) denote the threshold for the expected return of subsidies for passengers under the city-level subsidy policy 𝑟𝑖. The 
+greedy algorithm can be implemented by evaluating each user against this threshold as follows: 
+𝜋∗
+𝑖𝑗= 𝟏𝜏𝑖𝑗≥𝜏∗
+𝑖(𝑟𝑖),
+(9)
+where 𝜋𝑖𝑗 is set to 1 if the cost-performance ratio 𝜏𝑖𝑗 meets or exceeds the threshold 𝜏∗
+𝑖(𝑟𝑖), and 0 otherwise.
+In this way, the lower-level distribution policy is transformed into a process of verifying the threshold for each potential customer, 
+ensuring that only those who meet the threshold criterion are selected. Furthermore, it is important to note that for a single city, 
+the threshold 𝜏∗
+𝑖(𝑟𝑖) is solely determined by the upper-level subsidy action 𝑟𝑖. Therefore, the lower-level optimal policy 𝜋∗
+𝑖 can be 
+regarded as a function of 𝑟𝑖 with a one-to-one mapping, denoted as 𝜋∗
+𝑖(𝑟𝑖).
+Finally, the bi-level optimization problem presented in Eq. (6) can be reduced to a single-level problem by incorporating the 
+nearly optimal approximation 𝜋∗
+𝑖(𝑟𝑖) of the lower-level policy, as follows: 
+max
+𝑧(𝒓, 𝒄) =
+∑
+𝑖∈
+(1 + 𝜆𝑝𝑖)𝛥𝐺𝑖,
+(10a)
+s.t.
+𝛥𝐺𝑖= 𝜙(𝑟𝑖, 𝑐𝑖, 𝜋∗
+𝑖(𝑟𝑖)),
+∀𝑖∈
+(10b)
+∑
+𝑖∈
+̄𝐺𝑖⋅𝑟𝑖≤𝐵,
+(10c)
+𝑟𝑙𝑏≤𝑟𝑖≤𝑟𝑢𝑏,
+∀𝑖∈
+(10d)
+ It should be noted that, since 𝜋∗
+𝑖(𝑟𝑖) is solely determined by 𝑟𝑖 as shown in Eq. (9), the relationship between the upper-level policy 
+𝑟𝑖 and the lower-level policy 𝜋𝑖 can be directly modeled via the formulation of the function 𝜙. In other words, the modeling of 𝛥𝐺
+can inherently incorporate the lower-level response to the subsidy rate 𝑟𝑖. Therefore, we can abbreviate 𝛥𝐺𝑖(𝑟𝑖, 𝑐𝑖, 𝜋∗
+𝑖(𝑟𝑖)) as 𝛥𝐺𝑖(𝑟𝑖, 𝑐𝑖)
+in the following discussion without loss of generality, and the explicit modeling of 𝛥𝐺𝑖 will be provided in the following section.
+3. Modeling the effect of subsidy
+In this section, to further analyze the effect of city-level subsidies, we introduce a transaction link decomposition based on real-
+world scenarios and thereby identify the key parameters influencing subsidy allocation decisions. Specifically, Section 3.1 explicitly 
+models the effects of the subsidy on system dynamics. Additionally, Section 3.2 introduces the prediction model used to estimate 
+the unknown parameters.
+Transportation Research Part C 180 (2025) 105301 
+6 
+
+
+--- Page 7 ---
+J. Yang et al.
+Fig. 3. Illustration of the transaction link of the ride-hailing service.
+3.1. The transaction link of the ride-hailing service
+To model the effect of the subsidy on the GMV of the city, we first rewrite the definition of GMV 𝐺𝑖 shown in Eq. (3) as follows: 
+𝐺𝑖= ̄𝐺𝑖
+[1 + 𝜑𝑖(𝑟𝑖, 𝑐𝑖)] ,
+(11)
+where the function 𝜙𝑖(𝑟𝑖, 𝑐𝑖) denotes the ratio of the change in GMV of city 𝑖. Here, the function 𝜑𝑖 represents the compounded effect 
+of the pricing side (influenced by the subsidy rate 𝑟𝑖) and the matching side (affected by the completion rate 𝑐𝑖). However, directly 
+calibrating the functional form of 𝜑𝑖(⋅) is challenging, as it encompasses the entire transaction process, and the interactions between 
+pricing and matching are implicitly intertwined (Castillo et al., 2024).
+Therefore, the key to explicitly modeling the effect of the subsidy on ride-hailing behavior is to disentangle the transaction link 
+of the ‘‘order-to-completion’’ process. Fig. 3 depicts the transaction link of the ride-hailing service. We can note that there are three 
+main steps: (1) ‘‘Bubbling’’ event, which represents each time a passenger opens the ride-hailing app; (2) Issued order, which 
+indicates that the passenger has requested a service; and (3) Order completion, where the service is successfully fulfilled and the 
+trip is completed.
+For the first transition from the bubbling event to an issued order, the expense of the trip (i.e., the pricing side) is commonly 
+regarded as the key influencing factor (Feng et al., 2024). In other words, the amount of subsidy can motivate a passenger to request 
+a service, thereby converting a potential passenger into someone who orders a trip (Zhang et al., 2023). As for the second transition 
+from an issued order to trip completion, it is generally affected by the demand-supply ratio and the cancellation rate (Xu et al., 
+2020), which falls within the scope of matching (Fielbaum and Alonso-Mora, 2020; Liang et al., 2021; Li et al., 2021; Chang et al., 
+2022; Zhu et al., 2024; Guan and Bao, 2024). In this way, the rate of change in GMV 𝜑𝑖(⋅) can be further decoupled as follows: 
+𝜑𝑖(𝑟𝑖, 𝑐𝑖) = 𝑓(𝑟𝑖) ⋅𝑐𝑖,
+(12)
+where 𝑓(𝑟𝑖) can be regarded as the improvement of the ordering rate, which can be regarded as the rate of surplus passengers who 
+are successfully incentivized by the subsidy. Moreover, 𝑐𝑖 denotes the completion rate of the orders within city 𝑖. This indicates that 
+while the subsidy rate can increase the order rate of potential passengers, only a portion of these requests transfer into completed 
+orders due to the prevailing supply and demand conditions in the city.
+Based on Eqs. (12), (11) can be rewritten as: 
+𝐺𝑖(𝑟𝑖, 𝑐𝑖) = ̄𝐺𝑖
+[1 + 𝑓(𝑟𝑖)𝑐𝑖
+] ,
+(13)
+Moreover, the change in GMV 𝛥𝐺𝑖 can be expressed as: 
+𝛥𝐺𝑖(𝑟𝑖, 𝑐𝑖) = ̄𝐺𝑖𝑓(𝑟𝑖)𝑐𝑖,
+(14)
+To obtain the value of 𝛥𝐺𝑖, it is essential to calibrate the functional form of 𝑓(⋅) and predict the completion rate of each 𝑐𝑖. While 
+the prediction process for 𝑐𝑖 will be discussed in Section 3.2, we first address the task of calibrating 𝑓(⋅).
+In practice, the functional form of 𝑓(⋅) can be user-defined, depending on the characteristics of the specific problem and the 
+underlying data distribution. In this paper, we adopt a logarithmic form of 𝑓(⋅) as follows: 
+𝑓(𝑟𝑖) = 𝛽1 ln(𝛽2𝑟𝑖+ 1),
+∀𝑖∈
+(15)
+where 𝛽1 and 𝛽2 are the parameters to be calibrated. The logarithmic function is employed here because it effectively represents the 
+principle of the transaction market, where the effect of subsidy 𝑟𝑖 on the change in GMV follows the increasing trend but is subject 
+Transportation Research Part C 180 (2025) 105301 
+7 
+
+
+--- Page 8 ---
+J. Yang et al.
+Fig. 4. Illustration of the calibrated curve of function 𝑓(⋅).
+to decreasing marginal returns. In this work, all cities 𝑖∈ share the same functional form and parameter values of 𝑓(⋅). However, 
+the proposed model is generic and can be extended to scenarios where cities have different function parameters, provided that these 
+parameters can be accurately fitted.
+The calibration of the parameters 𝛽1 and 𝛽2 falls within the domain of causal inference, specifically aiming to accurately isolate 
+the effect of subsidies on GMV amid various other influencing factors (Rubin, 2005). An effective approach to achieve this is through 
+A/B test (Wager and Xu, 2021; Xie et al., 2023), and the detailed procedure is outlined in Appendix A. Moreover, an illustration of 
+the real-world data and its calibrated curve with a logarithmic function is presented in Fig. 4.
+Remark 3.1. It is intuitive that errors can occur in both the calibration of 𝑓(⋅) and the prediction of the completion rate 𝑐𝑖
+when calculating 𝛥𝐺𝑖(𝑟𝑖, 𝑐𝑖) through Eq. (14). However, this paper focuses mainly on the prediction errors introduced by 𝑐𝑖 in the 
+decision-focused learning framework, as we argue that the precision of 𝑓(⋅) can be guaranteed for the following reasons:
+1. Prior knowledge-aided function design: Fundamental principles of the transaction market (e.g., diminishing marginal 
+returns to subsidies) can guide the specification of 𝑓(⋅), thereby ensuring the calibration accuracy.
+2. Stable user behavior against external factors: While 𝑓(⋅) captures stable and aggregated user behavior, 𝑐𝑖 exhibits 
+higher sensitivity to both endogenous market factors (e.g., demand-supply ratio) and exogenous disturbances (e.g., weather, 
+holidays).
+3. Substantially smaller fitting error via actual field test: This work calibrates the function 𝑓(⋅) based on large-scale A/B test 
+conducted on real-world user populations. We report the comparison of both absolute error (MSE) and relative error (MAPE) 
+between 𝑓(⋅) and the parameter 𝑐 in Table A.3. The relative error of 𝑓(⋅) is substantially lower than that of 𝑐, indicating the 
+reliability and accuracy of the calibrated function 𝑓(⋅).
+3.2. Prediction problem
+The primary task of the prediction problem for subsidy allocation is to predict the trip completion rate 𝑐𝑖 of cities 𝑖∈. The 
+abstract form of the prediction model can be expressed as follows: 
+̂𝑐𝑖= 𝑴𝜽(𝒙𝒊)
+(16)
+where 𝑴𝜽 denotes the prediction model parameterized by 𝜽, and 𝒙𝑖 represents the features of city 𝑖 with 𝒙∈R𝐷. Although numerous 
+methods utilize statistical models or machine learning techniques to predict time series variables (e.g., Liu et al., 2022b; Chen et al., 
+2022), confidence in these predictions may be low at large spatio-temporal scales (Liu et al., 2022a). In real-world scenarios, the 
+city-level order completion rate 𝑐𝑖 exhibits significant stochasticity, as it is influenced by both endogenous features of the transaction 
+market, such as the supply–demand ratio, and exogenous factors (e.g., weather, day of the week, etc.) (Jin et al., 2020).
+One reliable approach to tackle the above challenge is to use semi-black-box simulation models that incorporate physical 
+principles extracted from real-world scenarios. Banerjee et al. (2020). These models can explicitly provide state transitions 
+Transportation Research Part C 180 (2025) 105301 
+8 
+
+
+--- Page 9 ---
+J. Yang et al.
+Fig. 5. Illustration of the semi-black box prediction model.
+between variables, offering robust estimates in the presence of many unobserved confounding variables. In this work, we adopt 
+a semi-black-box simulation model as shown in Fig. 5. It consists of three main components described as follows:
+• Simulation model with transaction laws: This module simulates the dynamics of the demand-supply ratios in the transaction 
+market through transition laws of operational principles. The endogenous features include the online durations of drivers on 
+the supply side and the number of orders on the demand side. It then outputs a base prediction of the trip completion rate.
+• Pre-trained neural network for city characteristics: This module is a pre-trained neural network that is fed embeddings of 
+exogenous features, such as the time of day, day of the week, whether it is a holiday, and weather conditions. The module 
+then outputs the residual to refine the base prediction.
+• Interaction layer: Given the outputs from the simulation model and the neural network module, the interaction layer fuses the 
+base prediction and residual and outputs the final prediction value of ̂𝑐.
+The prediction framework shown in Fig. 5 is widely adopted by DiDi in real-world operations and is capable of delivering robust 
+and accurate prediction results. However, the semi-black-box simulation model becomes non-differentiable, which poses additional 
+challenges for training via gradient-based methods.
+After obtaining the predicted results ̂𝒄, these can be used as input to derive the optimal subsidy allocation problem downstream 
+to the following optimization problem, which aims to obtain the optimal subsidy allocation plan 𝒓∗(̂𝒄) such that: 
+𝒓∗(̂𝒄) = argmax
+𝒓
+∑
+𝑖∈
+(1 + 𝜆𝑝𝑖) ̄𝐺𝑖𝑓(𝑟𝑖)̂𝑐𝑖,
+(17a)
+s.t.
+∑
+𝑖∈
+̄𝐺𝑖⋅𝑟𝑖≤𝐵,
+(17b)
+𝑟𝑙𝑏≤𝑟𝑖≤𝑟𝑢𝑏,
+∀𝑖∈
+(17c)
+4. Decision-focused learning framework
+In this section, we propose a decision-focused learning approach for the subsidy allocation problem. Specifically, Section 4.1 
+introduces the concept of decision-focused learning (DFL) and the decision loss function based on decision regret. Section 4.2 
+presents the surrogate loss function, which is convex for gradient calculation. Lastly, Section 4.3 provides a qualitative analysis 
+of the applicability of the surrogate loss function to subsidy allocation problems.
+4.1. Decision-focused loss function based on decision regret
+For the two-stage problem that involves a prediction model 𝑀𝜃 upstream and a decision model 𝑧(⋅) downstream, the prediction-
+focused learning (PFL) method is a widely used approach (e.g., Liu et al., 2021). This approach is characterized by the independent 
+handling of the prediction and decision modules, as illustrated in Fig. 6. Specifically, in PFL, the prediction model is trained to 
+minimize generalized fitting metrics such as MSE. The core assumption behind is that a smaller fitting error (e.g., MSE) necessarily 
+leads to better decision performance. However, this assumption does not always hold, as the prediction model is not trained with 
+consideration for the objectives of downstream decision-making (Mandi et al., 2023).
+In recent years, decision-focused learning has been introduced to address the limitations of prediction-focused learning. The 
+core concept behind DFL is to treat the two-stage predict-then-optimize problem in an end-to-end manner (Donti et al., 2017). In 
+this framework, the prediction model 𝑀𝜃 is trained to directly enhance decision performance. To achieve this, we first present the 
+decision-focused loss function, also known as the decision regret, introduced by Elmachtoub and Grigas (2022): 
+𝑳(̂𝒄, 𝒄) = 𝑧(𝒓∗(𝒄), 𝒄) −𝑧(𝒓∗(̂𝒄), 𝒄)
+(18)
+The loss function depicted in Eq. (18) can be interpreted as decision regret, which quantifies the gap between the objective 
+function values obtained from the realized optimal solution 𝒓∗(̂𝒄) based on the predicted parameters ̂𝒄, and its theoretically optimal 
+value under perfect information, represented by 𝒓∗(𝒄), where 𝒄 denotes the ground truth. In Eq. (17), since 𝑓(⋅) effectively assists 
+Transportation Research Part C 180 (2025) 105301 
+9 
+
+
+--- Page 10 ---
+J. Yang et al.
+Fig. 6. Comparison between PFL, DFL, and DFF.
+us in inferring all potential outcomes, the only uncertain parameter is 𝒄. When 𝒄 is specified, we can solve the optimization model 
+Eq. (17) to obtain the optimal solution under this scenario. Specifically, the optimality conditions for deriving 𝒓∗(̂𝒄) and 𝒓∗(𝒄) are 
+as follows: 
+𝒓∗(̂𝒄) = arg max
+𝒓
+𝑧(𝒓; ̂𝒄)
+(19a)
+𝒓∗(𝒄) = arg max
+𝒓
+𝑧(𝒓; 𝒄)
+(19b)
+The key step in applying the decision-focused loss function shown in Eq. (18) is to backpropagate the loss value 𝑳(̂𝒄, 𝒄) to 
+the prediction model 𝑀𝜃. A common approach is to employ the chain rule to compute the gradient of 𝑳(̂𝒄, 𝒄) with respect to the 
+prediction model parameters 𝜽, which can be expressed as follows Elmachtoub and Grigas (2022): 
+𝜕𝑳(̂𝒄, 𝒄)
+𝜕𝜽
+= 𝜕𝑳(̂𝒄, 𝒄)
+𝜕𝒓∗(̂𝒄) ⋅𝜕𝒓∗(̂𝒄)
+𝜕̂𝒄
+⋅𝜕̂𝒄
+𝜕𝜽
+(20)
+where 𝜕𝑳(̂𝒄,𝒄)
+𝜕𝒓∗(̂𝒄) , 𝜕𝒓∗(̂𝒄)
+𝜕̂𝒄, and 𝜕̂𝒄
+𝜕𝜽 represent the gradients of the loss function with respect to the decision variables 𝒓∗, the decision variables 
+with respect to the prediction output ̂𝒄, and the prediction output with respect to the prediction model parameters 𝜽, respectively.
+In Eq. (20), the first and third terms on the right-hand side can be computed via standard gradient backpropagation, provided 
+that the optimization model 𝑧(⋅) and the prediction model 𝑀𝜃 are differentiable. However, computing the second term 𝜕𝒓∗(̂𝒄)
+𝜕̂𝒄 is 
+more challenging, as there is no closed form for the mapping from prediction output to optimal decision, i.e., ̂𝒄→𝒓∗(̂𝒄), that can be 
+differentiated directly. To address this, the following section will present surrogate loss functions as alternatives to decision regret.
+4.2. Subgradient calculation based on surrogate loss function
+Although the decision regret shown in Eq. (18) is straightforward, it is difficult to apply directly for training the prediction 
+model due to the absence of a well-defined gradient and possible discontinuities. In this work, we adopt the SPO+ loss derived 
+by Elmachtoub and Grigas (2022) as the surrogate loss function. We first consider the downstream optimization problem as follows:
+min
+𝒚
+𝑞(𝒄) = 𝒄𝑻𝒚
+(21a)
+s.t. 𝒚∈𝑆,
+(21b)
+where 𝒚∈R𝐼 are the decision variables and 𝒄∈R𝐼 denotes parameters that need to be predicted. Here, 𝒄𝑻 represents the transpose 
+of the vector 𝒄. Moreover, 𝑆⊆R𝐼 denotes the feasible region, which is nonempty, convex, and compact (i.e., a closed and bounded 
+set). It is illustrated in Elmachtoub and Grigas (2022) that, for linear optimization problems, the assumptions that 𝑆 is convex and 
+closed are without loss of generality. Additionally, 𝑞(𝒄) represents the objective function value of the optimization task.
+For the linear optimization problem depicted in Eq. (21), the decision regret following the definition in Eq. (18) can be defined 
+as: 
+𝓁𝒚∗
+SPO(̂𝒄, 𝒄) = 𝒄𝑻𝒚∗(̂𝒄) −𝒒∗(𝒄)
+(22)
+Transportation Research Part C 180 (2025) 105301 
+10 
+
+
+--- Page 11 ---
+J. Yang et al.
+where 𝓁𝒚∗
+SPO denotes the decision regret with respect to the optimal decision 𝒚∗. Here, 𝑞∗(𝒄) represents the optimal value of the 
+objective function given parameter 𝒄. This is generally regarded as the SPO loss (short for ‘‘smart predict-then-optimize’’) in the 
+literature.
+However, considering scenarios where there are multiple solutions for 𝒚∗, Elmachtoub and Grigas (2022) introduce the 
+unambiguous version of the SPO loss shown in Eq. (22), which calculates the worst-case scenario such that: 
+𝓁SPO(̂𝒄, 𝒄) =
+max
+𝒚∈𝒀∗(̂𝒄)
+{𝒄𝑻𝒚} −𝒒∗(𝒄)
+(23)
+where 𝓁SPO denotes the unambiguous SPO loss by selecting the ‘‘worst’’ decision 𝒚 within the set of optimal decisions 𝒀∗(̂𝒄). Based on 
+the unambiguous SPO loss function 𝓁SPO, we now introduce the differentiable convex upper bound on Eq. (23) and its subgradient.
+Lemma 4.1 (Elmachtoub and Grigas, 2022). Given a fixed realized vector 𝒄, the upper bound of the unambiguous SPO loss 𝓁SPO, denoted 
+as 𝓁SPO+, can be derived as: 
+𝓁SPO+(̂𝒄, 𝒄) = max
+𝒚∈𝑆
+{𝒄𝑻𝒚−2̂𝒄𝑻𝒚} + 2̂𝒄𝑻𝒚∗(𝒄) −𝒒∗(𝒄)
+(24)
+Here, the SPO+ loss 𝓁SPO+ is a convex function of the predicted parameter ̂𝒄, and a subgradient of 𝓁SPO+ with respect to ̂𝒄 can be 
+calculated as: 
+2(𝒚∗(𝒄) −𝒚∗(2̂𝒄−𝒄)) ∈𝜕𝓁SPO+(̂𝒄, 𝒄)
+𝜕̂𝒄
+(25)
+Based on the surrogate loss function 𝓁SPO+, the gradient of the decision regret, as shown in Eq. (20) for the linear optimization 
+problem Eq. (21), can be approximated as follows:
+𝜕𝑳(̂𝒄, 𝒄)
+𝜕𝜽
+≈𝜕𝓁SPO+(̂𝒄, 𝒄)
+𝜕𝜽
+(26)
+= 𝜕𝓁SPO+(̂𝒄, 𝒄)
+𝜕̂𝒄
+⋅𝜕̂𝒄
+𝜕𝜽
+(27)
+4.3. Applicability of SPO+ loss for subsidy allocation problem
+There are two major challenges in utilizing the approximated gradient shown in Eq. (26): (1) the applicability of the subsidy 
+allocation problem to the SPO+ loss and (2) deriving the optimal solution with non-convex objective functions. We first provide the 
+sufficient condition for applying the SPO+ loss.
+Lemma 4.2 (Elmachtoub and Grigas, 2022). Let the SPO+ loss be defined as in Eq. (24). The SPO+ loss can serve as a surrogate loss 
+function for decision regret under the following conditions:
+1. The objective function of the optimization problem is linear.
+2. The feasible region of the decisions is nonempty and bounded.
+We can note from Lemma 4.2 that the SPO+ loss is only applicable to optimization problems with linear objective functions. 
+However, it is apparent that the subsidy allocation problem presented in Eq. (17) is nonlinear. Below, we demonstrate the 
+transformation of the optimization task, specifying the sufficient conditions under which the subsidy allocation problem satisfies 
+the requirements outlined in Lemma 4.2. Based on this, we further introduce the subgradient of the SPO+ loss for optimizing the 
+subsidy allocation problem.
+Proposition 4.1.  The original optimization problem for subsidy allocation presented in Eq. (17) can be reformulated as a linear optimization 
+problem with nonlinear constraints, as follows: 
+max
+𝒓
+𝒛(𝒘, 𝒄) = 𝒄𝑇𝒘
+(28a)
+s.t. 
+𝒓∈𝑆′
+(28b)
+𝒘= 𝒌⊙𝑓(𝒓)
+(28c)
+where ⊙ denotes the Hadamard product, and 𝒘 represents the transformed decision variables defined in Eq. (28c). In this context, 
+𝒌= [𝑘1, 𝑘2, … , 𝑘𝐼] is defined as 𝑘𝑖= ̄𝐺𝑖(1 + 𝜆𝑝𝑖), and 𝑓(𝒓) = [𝑓(𝑟1), 𝑓(𝑟2), … , 𝑓(𝑟𝐼)] is a vector-valued function applied to the vector 
+𝒓. Additionally, 𝑆′ denotes the feasible region of the original decision variable 𝒓.
+A sufficient condition for the subsidy allocation problem shown in Eq. (31) to satisfy the conditions presented in Lemma 4.2 is that 𝑓(⋅)
+is bounded and well-defined over the feasible set 𝑆′ of decisions 𝒓. The corresponding subgradient based on the SPO+ loss can be calculated 
+as:
+𝜕𝓁SPO+(̂𝒄, 𝒄)
+𝜕̂𝒄
+= −[2(𝒘∗(𝒄) −𝒘∗(2̂𝒄−𝒄))]
+(29)
+= 2𝒌⊙[𝑓(𝒓∗(2̂𝒄−𝒄)) −𝑓(𝒓∗(𝒄))]
+(30)
+Transportation Research Part C 180 (2025) 105301 
+11 
+
+
+--- Page 12 ---
+J. Yang et al.
+We now provide the proof of Proposition 4.1.
+Proof. We first elaborate the transformation of the optimization problem from Eqs. (17) to (28). Eq. (17) can be firstly rewritten in 
+vector form such that: 
+max
+𝒓
+𝒛(𝒓, 𝒄) = 𝒄𝑻(𝒌⊙𝑓(𝒓))
+(31a)
+s.t. 𝒓∈𝑆′
+(31b)
+ Let 𝑤𝑖= 𝑘𝑖𝑓(𝑟𝑖), then Eq. (31) can be transformed into Eq. (28), and the objective function in Eq. (28) is linear with respect to the 
+transformed decision variable 𝒘.
+Concerning the constraints, since 𝒓 lies within a closed polyhedral set 𝑆′, it suffices to prove that 𝒘, as a transformed decision 
+variable, also resides within a nonempty and bounded set. Given the conditions that 𝑓(𝒓) is bounded and well-defined over the 
+closed polyhedral set 𝑆′, we can conclude the following properties of the transformed decision space 𝑆′′ for 𝒘::
+Non-emptiness of 𝑆′′: Since 𝑆′ is nonempty and 𝑓(𝒓) is well-defined for all 𝒓∈𝑆′, the mapping 𝒓↦𝑓(𝒓) must also yield a 
+nonempty set of elements for 𝒓∈𝑆′. Consequently, the feasible set for 𝒘= 𝑓(𝒓) ⊙𝒌 is nonempty, as there exists at least one 𝒓∈𝑆′
+for which 𝒘= 𝑓(𝒓) ⊙𝒌 is well-defined.
+Boundedness of 𝑆′′: Since 𝑓(𝒓) is bounded over 𝑆′, there exists a constant 𝑈> 0 such that for all 𝒓∈𝑆′,
+|𝑓(𝑟𝑖)| ≤𝑈
+∀𝑖∈.
+Thus, each component of 𝑓(𝒓) is bounded. Given that 𝒘= 𝑓(𝒓) ⊙𝒌 and that 𝒌 is a fixed vector, the product 𝒘= 𝑓(𝒓) ⊙𝒌 is also 
+bounded. Specifically, there exists a constant 𝑈′ = 𝑈⋅|𝑘𝑖|𝑚𝑎𝑥 such that:
+|𝑤𝑖| ≤𝑈′
+∀𝑖∈.
+This demonstrates that the feasible set for 𝒘 is bounded.
+To conclude, the feasible set 𝑆′′ for 𝒘= 𝑓(𝒓) ⊙𝒌 is both nonempty and bounded. Therefore, the subsidy allocation problem 
+presented in Eq. (17) satisfies the conditions outlined in Lemma 4.2 for application with the SPO+ loss.
+Based on Proposition 4.1, we can now apply the SPO+ loss to the subsidy allocation problem with theoretical guarantees.
+The other significant challenge is to obtain the optimal solution for the optimization problem Eq. (17). As 𝑓(⋅) can be an arbitrary 
+user-defined function or even machine learning models, it raises concerns about the solvability of the potentially non-convex 
+optimization problem where the black box occurs in the objective function. To address this issue, we propose a complementary 
+solution in Appendix B, where we reformulate problem Eq. (17) as an integer programming model. In this way, we can ensure that 
+the resulting model remains compatible with the introduced DFL algorithm.
+5. Decision-focused fine-tuning for non-differentiable prediction models
+In real-world applications, a major challenge of applying DFL is that it can only be utilized with differentiable prediction models. 
+This limitation prevents direct adjustments to the simulation models used for deriving predictions. In other words, when the upstream 
+prediction is non-differentiable, the gradient term 𝜕̂𝒄
+𝜕𝜽 presented in the gradient calculations of decision regret Eq. (20) and SPO+ 
+loss Eq. (27) becomes infeasible. Moreover, as DFL treats parameter prediction as an intermediate result, biases can be introduced, 
+which may cause the parameters to lose their physical meaning. To address these issues, we adopt a Decision-Focused Fine-tuning 
+(DFF) mechanism proposed by Yang et al. (2025), which shifts the emphasis from directly training a prediction model to fine-tuning 
+an existing one.
+The main idea of DFF is to fine-tune the prediction output ̂𝒄 from an existing prediction model 𝑴𝜽 to enhance the final decision 
+quality. This approach ensures that the corrected predictions ̃𝒄 remain within an acceptable range of the original model’s predictions, 
+i.e., ̂𝒄. The framework is shown in Fig. 7. The DFF framework can be formulated as a constrained optimization problem as follows: 
+min
+𝑭𝛼
+E𝑥,𝑐
+[𝓁SPO+(𝒄, ̃𝒄)]
+(32a)
+s.t.
+D(̃𝒄, ̂𝒄) ≤𝜖
+(32b)
+̃𝒄= 𝑭𝜶(𝒙, ̂𝒄)
+(32c)
+̂𝒄= 𝑴𝜽(𝒙)
+(32d)
+where a predefined distance metric D between ̃𝒄 and ̂𝒄 is strictly constrained within the acceptable range 𝜖. The formulation Eq. (32) 
+can be interpreted as enhancing decision quality by correcting the upstream prediction model 𝑴𝜽 via 𝑭𝜶 within the trust region 𝜖.
+In this paper, we design the fine-tuning module 𝑭𝜶 to achieve a multiplication correction as follows: 
+𝑭𝜶(𝒙, ̂𝒄) = 𝝍(𝒙, ̂𝒄) ⊙̂𝒄
+(33)
+where ⊙ is the Hadamard product and 𝝍 represent the weights of bias correction module. In summary, 𝑭𝛼 learns a multiplicative 
+transformation based on the origin features 𝒙 and upstream predictions ̂𝒄, instead of updating the parameters 𝜽 of the prediction 
+Transportation Research Part C 180 (2025) 105301 
+12 
+
+
+--- Page 13 ---
+J. Yang et al.
+Fig. 7. Illustration of the decision-focused fine-tuning framework.
+model 𝑴𝜽. This approach allows it to apply the SPO+ loss to general non-differentiable prediction models. We define the distance 
+metric in the trust-region constraint Eq. (32b) as the percentage error, as follows: 
+D𝑖(̃𝑐𝑖, ̂𝑐𝑖) = ||||
+̃𝑐𝑖−̂𝑐𝑖
+̂𝑐𝑖
+||||
+≤𝜖,
+𝑖∈{1, 2, … , 𝐼}
+(34)
+Here, 𝜖 represents the maximum point-wise adjustable percentage. The percentage error distance normalizes the predictions of 𝑭𝜶
+to unitless values, thereby avoiding considering the order of magnitude of unknown parameters to be predicted.
+We apply the hyperbolic tangent transformation to ensure that the output of 𝑭𝜶(𝒙) strictly falls within the specified range and 
+exhibits center-symmetry, i.e. ̃𝑐𝑖
+̂𝑐𝑖∈(1−𝜖, 1+𝜖) (see similar examples in Su et al., 2020). The output layer of 𝝍(𝒙, ̂𝒄) can be represented 
+as: 
+𝝍(𝒙, ̂𝒄) = 1 + 𝜖𝑡𝑎𝑛ℎ(𝒉(𝒙, ̂𝒄))
+(35)
+where 𝒉(𝒙, ̂𝒄) denotes the output from the penultimate layer, and 𝑡𝑎𝑛ℎ(𝜁) = 𝑒𝜁−𝑒−𝜁
+𝑒𝜁+𝑒−𝜁 denotes the standard hyperbolic tangent function. 
+The pseudo-code of the proposed method is provided in Algorithm 1.
+Algorithm 1 Decision-focused Fine-tuning based on SPO+ loss
+Input: Historic data 𝒙, prediction model 𝑀𝜃
+Output: Trained fine-tuning model 𝑭𝜶
+1: Initialize model parameters 𝜶 for prediction model 𝑭𝜶
+2: Solve optimal solution of 𝒓∗(𝒄) ←𝒄 by Eq. (19)
+3: for epochs do
+4:  
+for each batch of training data (𝒙, 𝒄) do
+5:  
+Step 1: Obtain the backbone prediction ̂𝒄 by Eq. (16)
+6:  
+Step 2: Obtain the corrected prediction ̃𝒄 by Eq. (33)
+7:  
+Step 3: Forward pass to solve optimal solution of 𝒓∗(2̃𝒄−𝒄) ←̃𝒄 by Eq. (19)
+8:  
+Step 4: Forward pass to compute SPO+ loss 𝓁SPO+(̃𝒄, 𝒄) by Eq. (24)
+9:  
+Step 5: Backward pass from 𝓁SPO+(̃𝒄, 𝒄) to update parameters 𝜶 with gradient by Eq. (30)
+10:  
+end for
+11: end for
+12: Return Fine-tuning model 𝑭𝜶 trained by SPO+ loss
+6. Case study
+In this section, we present a case study utilizing a real-world dataset from DiDi Chuxing in China to demonstrate the effectiveness 
+of the proposed DFF method. Specifically, Section 6.1 introduces the dataset and experimental settings. Section 6.2 outlines 
+five benchmarks for the subsidy allocation problem, along with the evaluation metrics. Additionally, Section 6.3 presents the 
+experimental results, while sensitivity analyses regarding parameters and data sizes are discussed in Section 6.4.
+6.1. Experiment settings
+In this paper, we conduct experiments using real-world market data from DiDi Chuxing, covering the period from January 1, 
+2024, to May 31, 2024. We select subsidy data for a specific service whose demand behavior demonstrates significant elasticity in 
+Transportation Research Part C 180 (2025) 105301 
+13 
+
+
+--- Page 14 ---
+J. Yang et al.
+Fig. 8. Distribution of GMV across different cities.
+Fig. 9. Distribution of completion rate.
+response to subsidies. The dataset encompasses all cities offering this service and includes daily information on subsidy amounts, 
+GMV, and relevant transaction features used to predict completion rates for each city.
+A notable characteristic of the data is the significant variation in GMV across different cities. Fig. 8 illustrates the average GMV 
+for each city over the investigated time period, and this variation can be described from two perspectives. First, a small proportion 
+of cities accounts for a large share of the market’s total GMV, driven by exceptionally high demand for the service. In contrast, over 
+half of the cities collectively contribute only a small fraction of the total GMV. This variation in demand complicates the two-stage 
+task, as the background information on GMV volume must be considered when predicting the uncertain parameters. To enhance 
+our analysis, we categorize the cities into three groups: high-demand cities, medium-demand cities, and low-demand cities.
+The distribution of the parameter to be predicted is illustrated in Fig. 9. The parameter exhibits a pronounced long-tail 
+phenomenon, which presents challenges for accurate prediction. Additionally, the boxplots displaying the distribution of this 
+Transportation Research Part C 180 (2025) 105301 
+14 
+
+
+--- Page 15 ---
+J. Yang et al.
+Fig. 10. Boxplots of completion rate distribution for different categories of cities.
+parameter across the three categories of cities are presented in Fig. 10. We observe that as GMV increases, the average completion 
+rate also rises. This indicates a responsiveness of demand and supply to subsidy allocation. However, even after categorizing the 
+data based on GMV characteristics, numerous outliers remain within each category. This suggests the complexities of accurately 
+predicting the parameter, as it is influenced by multiple factors beyond just GMV.
+For training the prediction model 𝑭𝜶, the dataset is randomly divided into training, validation, and test sets with a ratio of 6:2:2. 
+For each experiment with the same settings, we conduct 10 simulation runs using different random seeds to mitigate the effects of 
+stochasticity and outliers. As for the configurations of neural networks, it is set to 3 layers with 64 neurons in the hidden layer, and 
+ReLU is selected as the activation function. The batch size for the training process is set to 16 × 𝐼, which corresponds to processing 
+data for 16 days across all cities in each batch. The model is trained using the Adam optimizer with a learning rate of 10−4, with a 
+maximum of 1000 training epochs and an early stopping strategy (Su et al., 2021). All experiments are conducted on an Apple Mac 
+Pro equipped with an M1 8-core CPU and 8 GB of RAM, running macOS Monterey. The code is implemented using Python (version 
+3.11). The trade-off parameter 𝜆 is set to 0.7.
+6.2. Benchmarks and evaluation metrics
+In this paper, we adopt five additional different subsidy allocation strategies for benchmarking purposes. The details are as 
+follows:
+1. PFL (Prediction-Focused Learning): This method employs a neural network as the prediction model, which is trained to 
+minimize the generalized mean squared error (MSE)
+2. PFL-S (Simulation-then-Optimization): This method utilizes a semi-black-box prediction model embedded with a simulation 
+model, as illustrated in Fig. 5. This approach can be viewed as a specific instance of the two-stage predict-then-optimize 
+framework.
+3. PFL-W (Prediction-Focused Learning with weighted MSE): This method shares the same structure with PFL, while the neural 
+network is trained to minimize the weighted MSE (WMSE) as follows: 
+WMSE = 1
+𝐼
+𝐼∑
+𝑖=1
+(𝑘𝑖𝑐𝑖−𝑘𝑖̂𝑐𝑖)2
+= 1
+𝐼
+𝐼∑
+𝑖=1
+𝑘2
+𝑖(𝑐𝑖−̂𝑐𝑖)2
+(36)
+The weight of each sample is set to 𝑘2
+𝑖, where 𝑘𝑖 serves the weight in the optimization objective outlined in Eq. (28).
+4. DFL-SPO+ (Decision-Focused Learning with SPO+ loss): This method directly utilizes the DFL approach, where a neural 
+network serves as the prediction model, trained with the SPO+ loss defined in Eq. (24). The model’s input is identical to that 
+of the simulation model.
+Transportation Research Part C 180 (2025) 105301 
+15 
+
+
+--- Page 16 ---
+J. Yang et al.
+Table 2
+Summary of results under different benchmarks.
+ Strategy
+PFL
+PFL-S
+PFL-W
+DFL-SPO+
+DFF-FY
+DFF-SPO+(Ours) 
+ Normalized regret
+2.73%
+2.46%
+1.53%
+1.35%
+1.34%
+1.26%
+ 
+ Revenue improvement
+0%
+0.28%
+1.23%
+1.42%
+1.43%
+1.51%
+ 
+ MSE
+1.29 × 10−2
+2.71 × 10−2
+1.49 × 10−2
+2.78 × 10−2
+4.34 × 10−2
+2.18 × 10−2
+ 
+ Wrong decision rate
+11.95%
+9.13%
+5.67%
+4.07%
+3.22%
+3.15%
+ 
+ Spearman’s rank
+0.69
+0.69
+0.77
+0.81
+0.82
+0.82
+ 
+5. DFF-FY (Decision-Focused Fine-tuning with Fenchel–Young Loss): This method employs the decision-focused fine-tuning 
+framework to adjust the simulation model as illustrated in Section 5. In this approach, the bias correction module is trained 
+using Fenchel–Young Loss (Berthet et al., 2020), from which the decision loss is derived based on the perturbed method. 
+Considering the reformulated optimization problem of subsidy allocation presented in Eq. (28), the perturbed Fenchel–Young 
+loss can be calculated as follows: 
+𝐿FY(̂𝒄, 𝒄) = 𝑄𝜎(̂𝒄) + 𝜎𝛺(𝒘∗(𝒄)) −̂𝒄𝑇𝒘∗(𝒄)
+(37)
+where 𝑄𝜎(𝑐) represents expectation of the perturbed optimizer and 𝜎𝛺(𝒘∗(𝒄)) is the Fenchel dual of 𝑄𝜎(𝑐). Moreover, the 
+function of 𝑄𝜎(𝑐) is defined as: 
+𝑄𝜎(𝒄) = E𝜼
+[
+max
+𝒘∈{(𝒄+ 𝜎𝜼)𝑇𝒘}
+]
+(38)
+where the random perturbation vector 𝜎𝜼 is the product of a random variable 𝜼 and a temperature parameter 𝜎. In this paper, 
+𝜼 is sampled from a standard normal distribution and 𝜎 is set to 1 to control the strength of perturbing 𝒄.
+6. DFF-SPO+ (Ours) (Decision-Focused Fine-tuning with SPO+ loss): This is the proposed method of this paper, where the 
+prediction value is fine-tuned based on the simulation results. The SPO+ loss, as shown in Eq. (24), is employed to minimize 
+the decision regret defined in Eq. (18).
+To evaluate the performance of the subsidy decisions, we adopt the following evaluation metrics. First is the normalized regret 
+defined as follows Tang and Khalil (2022) : 
+Normalized Regret =
+∑[𝑧(𝒓∗(𝒄), 𝒄) −𝑧(𝒓∗(̂𝒄), 𝒄)]
+∑|𝑧(𝒓∗(𝒄), 𝒄)|
+(39)
+We further design a metric named the wrong decision rate (WDR), which measures the significant deviation of the derived 
+subsidy decision from the optimal decision. The WDR 𝑊𝑖 for city 𝑖 within the planning horizon can be calculated as follows: 
+𝑊𝑖= 1
+𝑇
+𝑇∑
+𝑡=1
+𝟏
+(
+|𝑟𝑖
+∗(̂𝑐𝑡
+𝑖) −𝑟𝑖
+∗(𝑐𝑡
+𝑖)| ≥𝑟𝑢𝑏−𝑟𝑙𝑏
+2
+)
+(40)
+where 𝟏(⋅) is a binary operator that equals 1 if the condition holds and 0 otherwise.
+For the subsidy allocation problem, it is intuitive to analyze the ranking of the amount of subsidies across different distribution 
+plans. Therefore, we adopt the Spearman’s rank correlation coefficient (Zar, 2005), which measures the correlation between two 
+groups of data. We employ this coefficient to assess the discrepancy in the ranking of subsidies between the derived decisions and 
+the optimal decision as follows: 
+𝜌= 1 −
+6 ∑𝐼
+𝑖𝑑2
+𝑖
+𝐼(𝐼2 −1)
+(41)
+where 𝑑𝑖 represents the difference in ranks for each pair of corresponding values. Specifically, for each pair of values, the ranks of 
+𝒓∗(̂𝒄) and 𝒓∗(𝒄) are computed, with 𝑑𝑖 representing the difference between these ranks for each city 𝑖. If there are ties in the ranks, 
+the average rank for the tied values is used.
+6.3. Experiment results
+We first present the training process of the proposed DFF-SPO+ method, as illustrated in Fig. 11. During the training process, 
+we observe that the normalized decision regret decreases across the training, validation, and test datasets, stabilizing around 200 
+epochs. Moreover, the training curve for the training dataset shows the lowest value of decision regret, which is intuitive since the 
+fine-tuning module is trained directly on this dataset. In contrast, the normalized regret for the validation and test datasets yields 
+relatively similar results. Fig. 12 depicts the progressions of the SPO+ loss and the decision regret during training. We observe that 
+as the number of epochs increases, both the SPO+ loss and the normalized regret continue to decrease, following similar trends. This 
+indicates that the SPO+ loss is consistent with decision regret, supporting the analysis in Section 4 that the SPO+ loss is a suitable 
+surrogate loss function for deriving the approximated decision-focused gradient of the subsidy allocation problem. Furthermore, the 
+curve of the SPO+ loss is smoother compared to that of the decision regret, highlighting its superiority as a surrogate loss function.
+Transportation Research Part C 180 (2025) 105301 
+16 
+
+
+--- Page 17 ---
+J. Yang et al.
+Fig. 11. Progression of the decision regret during training for DFL-SPO+ method.
+Fig. 12. Progressions of SPO+ loss and decision regret during training.
+The performance of different benchmarks is summarized in Table 2. Firstly, we note that the proposed DFF-SPO+ method 
+delivers the least decision regret, resulting in the highest improvement in platform revenue, which increases by 1.51% compared 
+to the PFL method. Moreover, the DFL-SPO+ and DFF-FY methods rank second and third in both decision regret and revenue 
+improvement, further demonstrating the advantages of the decision-focused training framework. However, by comparing the two 
+DFF-based methods, we can find that the SPO+ loss is more effective as a surrogate function than the FY loss. Furthermore, under 
+the same SPO+ loss setting, the DFF method achieves less decision regret than the DFL method, owing to its use of a constrained 
+fine-tuning mechanism to the prediction backbone. On the other hand, although PFL yields the lowest mean squared error (MSE), 
+it exhibits the highest regret. This indicates that minimizing fitting errors alone does not necessarily improve downstream decision-
+making. In comparison, both PFL-S and PFL-W outperform PFL, with improvements of 0.28% and 1.23% in regret, respectively. This 
+is because PFL-S obtains more reliable inputs for downstream tasks through a simulation model, while PFL-W facilitates downstream 
+decision-making by applying weights related to the decision process in the training of the prediction model.
+Fig. 13 depicts the wrong decision rate of subsidy allocation decisions across different benchmarks in three city categories. We 
+observe that the proposed DFF-SPO+ method achieves the lowest wrong decision rate in both low-demand and high-demand cities, 
+Transportation Research Part C 180 (2025) 105301 
+17 
+
+
+--- Page 18 ---
+J. Yang et al.
+Fig. 13. Wrong decision rate over different city categories.
+Fig. 14. Comparison of the Spearman’s rank correlation coefficient.
+and the second-lowest rate in medium-demand cities. This indicates that DFF-SPO+ can effectively avoid wrong decisions under 
+varying circumstances influenced by different city characteristics. Moreover, we conclude that the improvement of the decision-
+focused approaches lies in their significant reduction of the wrong decision rate, which subsequently enhances platform revenue. 
+Specifically, we note that all methods exhibit their highest wrong decision rates in medium-demand cities. However, DFF-SPO+ 
+reduces the wrong decision rate by more than 70% compared to PFL in medium-demand cities, demonstrating that DFF-SPO+ can 
+maintain strong performance even in complex situations.
+We further present Spearman’s rank correlation coefficient for different benchmarks across various city categories in Fig. 14. The 
+main idea behind rank correlation is to compare the similarity of the derived rankings of the subsidy portions to the optimal subsidy 
+decisions derived from the ground truth. Once again, we observe that DFF-SPO+ achieves the highest Spearman’s rank correlation 
+coefficient among all benchmarks, indicating that the ranking produced by DFF-SPO+ is closest to the optimal ranking. Moreover, 
+the trend in similarity aligns consistently with revenue improvement and decision regret. This aligns with the findings of Zhou et al. 
+(2023), which state that a key aspect of deriving an effective subsidy plan is accurately learning the ranking of importance among 
+Transportation Research Part C 180 (2025) 105301 
+18 
+
+
+--- Page 19 ---
+J. Yang et al.
+Fig. 15. Sensitivity analysis on the effect of parameter 𝜖.
+different participants. Indeed, the decision-focused approaches demonstrate that decision loss can guide the prediction model to 
+identify critical cities with greater importance, which is essential for effectively addressing the subsidy allocation problem.
+6.4. Sensitivity analysis
+We first conduct a sensitivity analysis on the effect of the trust-region parameter 𝜖 on DFF-based methods. The trends in decision 
+regret and MSE are shown in Figs. 15(a) and 15(b), respectively. As illustrated in Fig. 15(a), the decision regret of DFF-SPO+ 
+decreases with an increase in 𝜖 when 𝜖 is less than 0.7. However, the decision regret rebounds when 𝜖 exceeds 0.7. This occurs 
+because, with a loose constraint on the trust region, the DFF-based approach degrades to the original DFL method, where the 
+prediction output cannot be adjusted effectively. As for the decision regret of the DFF-FY method, it stabilizes when 𝜖 reaches 0.3. 
+Meanwhile, the decision regret obtained using the SPO+ loss is lower than that of the FY loss across all settings of 𝜖, demonstrating 
+the effectiveness of gradient-based training over perturbation-based training. Regarding the MSE results shown in Fig. 15(b), the 
+SPO+ loss maintains a low and stable MSE across different values of 𝜖, whereas the MSE under the FY loss increases substantially as 
+𝜖 grows. This divergence occurs because a larger 𝜖 defines a broader trust region, allowing more flexibility in adjusting predictions 
+based on decision error. In such cases, the SPO+ loss continues to effectively constrain the deviation of predicted values from their 
+ground truth, thereby preserving low prediction error (Elmachtoub and Grigas, 2022). In contrast, the FY loss fails to do so, as 
+it is derived via perturbation smoothing and lacks both convexity and Fisher consistency (Berthet et al., 2020). These theoretical 
+limitations undermine its ability to ensure stable and accurate predictions under relaxed fine-tuning constraints.
+We further evaluate the performance of the DFF-based method with different training data sizes, with the associated results 
+on decision regret and MSE shown in Figs. 16(a) and 16(b), respectively. In Fig. 16(a), we observe that as the training data 
+size increases, the decision regret of the decision-focused approaches decreases consistently, whereas the PFL method exhibits a 
+fluctuating downward trend. In particular, the PFL method performs markedly worse than the decision-focused approaches and 
+can only achieve decision outcomes comparable to those of the PFL-S variants when utilizing the full dataset. This highlights 
+the distinction between prediction-focused and decision-focused approaches. Moreover, the decision regret of the decision-focused 
+approach using SPO+ loss is consistently lower than that of FY loss, further demonstrating that the SPO+ loss is more effective than 
+FY. Regarding the MSE shown in Fig. 16(b), the PFL method continues to decrease and ultimately delivers the lowest MSE, as it 
+is trained to directly minimize MSE. Furthermore, in all cases, both DFF-based variants maintain stable MSE, with the SPO+ loss 
+consistently outperforming its FY counterpart in terms of MSE.
+7. Conclusions
+In conclusion, this study presents a novel decision-focused learning framework designed to optimize subsidy allocation at the 
+city level. By combining the macro and micro subsidy allocation policies, we model the subsidy allocation problem at the city level 
+as a bi-level optimization problem and reduce the bi-level formulation to a single-level optimization problem with a near-optimal 
+approximation of the lower level. Moreover, we effectively captured the complex effects of subsidies through an explicit modeling of 
+transaction flows rooted in real-world scenarios. This approach facilitates a deeper understanding of the interplay between pricing 
+and matching dynamics. A key innovation of our framework is the training of the prediction model to minimize downstream decision 
+loss, moving away from traditional generalized loss functions that primarily focus on fitting errors. This integration of prediction 
+Transportation Research Part C 180 (2025) 105301 
+19 
+
+
+--- Page 20 ---
+J. Yang et al.
+Fig. 16. Sensitivity analysis on the effect of training data size.
+and optimization tasks creates a seamless end-to-end solution. To overcome the challenges associated with gradient backpropagation 
+from decision loss to the prediction model, we introduced the SPO+ loss function, which we proved to be convex in the context 
+of subsidy allocation. Additionally, we developed a decision-focused fine-tuning (DFF) mechanism to address the non-differentiable 
+nature of the prediction model, incorporating a given backbone model and an additional bias correction layer. In this manner, the 
+decision loss can be applied to any prediction model, including those that incorporate simulation elements.
+Through empirical testing on real-world data from DiDi Chuxing, the proposed DFF framework achieved a revenue increase 
+of 1.51% compared to traditional predict-then-optimize methods. Additionally, the DFF approach significantly reduced the wrong 
+subsidy rate across cities with varying GMV. It also demonstrated robust performance, even when trained on limited data. This 
+research highlights the effectiveness of decision-focused learning in improving optimization strategies and provides valuable insights 
+for future applications in subsidy allocation for ride-hailing platforms. Future directions include incorporating spatial correlations 
+among different cities when deriving decision loss (Bright et al., 2024) and developing a hierarchical subsidy allocation structure 
+that effectively coordinates city-level and individual-level subsidy allocation (Su et al., 2023).
+CRediT authorship contribution statement
+Jiaqi Yang: Writing – original draft, Software, Methodology, Formal analysis, Data curation, Conceptualization. Lexiao 
+Chen: Writing – original draft, Visualization, Validation, Software, Conceptualization. Zicheng Su: Writing – review & editing, 
+Writing – original draft, Supervision, Project administration, Funding acquisition, Formal analysis, Conceptualization. Wanjing Ma: 
+Supervision, Resources, Funding acquisition. Zhichao Zou: Software, Resources, Conceptualization. Kun An: Supervision, Funding 
+acquisition, Conceptualization.
+Acknowledgments
+Financial support from the National Natural Science Foundation of China (No. 52325210, 52472349, 72361137005 and 
+52302411) and CCF-DiDi GAIA Collaborative Research Funds (No. 202409) are gratefully acknowledged.
+Appendix A. Illustration of the a/b test for calibrating the function 𝒇(⋅)
+To minimize the cost of the experiment, we randomly select a fixed number of passengers to form the control group, denoted 
+as group 𝐴, which receives a nominal subsidy rate. The remaining passengers constitute group 𝐵. For the different groups 𝐴 and 𝐵
+within the same city 𝑖, we can derive the per individual GMV of groups 𝐴 and 𝐵 as follows: 
+𝐺𝑖𝐴
+𝑁𝑖𝐴
+=
+̄𝐺𝑖𝐴
+𝑁𝑖𝐴
+[1 + 𝑓(𝑟𝑖𝐴)𝑐𝑖
+] ,
+(A.1)
+and 
+𝐺𝑖𝐵
+𝑁𝑖𝐵
+=
+̄𝐺𝑖𝐵
+𝑁𝑖𝐵
+[1 + 𝑓(𝑟𝑖𝐵)𝑐𝑖
+] ,
+(A.2)
+Transportation Research Part C 180 (2025) 105301 
+20 
+
+
+--- Page 21 ---
+J. Yang et al.
+Table A.3
+Comparison of fitting errors between 𝑓(𝑟) and 𝑐.
+ Parameter
+Method
+MSE
+MAPE  
+ 𝑓(𝑟)
+Nonlinear least squares
+2.53 × 10−3
+6.56%  
+ 𝑐
+Simulation-based prediction (PFL-S)
+2.71 × 10−2
+27.36% 
+ 
+Neural network-based prediction (PFL)
+1.29 × 10−2
+17.25% 
+where ̄𝐺𝑖𝐴 and ̄𝐺𝑖𝐵 denote the baseline GMV of the two groups, respectively. Moreover, 𝑁𝑖𝐴 represents the number of trips for 
+group 𝐴 (with the nominal subsidy 𝑟𝑖𝐴), while 𝑁𝑖𝐵 denotes the number of trips in group 𝐵 with a subsidy rate of 𝑟𝑖𝐵. Since group 
+𝐴 receives the nominal subsidy, the following approximation can be obtained: 
+̄𝐺𝑖𝐴
+𝑁𝑖𝐴
+≈𝐺𝑖𝐴
+𝑁𝑖𝐴
+,
+(A.3)
+We then assume that the per individual GMV with nominal subsidies is the same for different groups within the same city, such 
+that: 
+̄𝐺𝑖𝐴
+𝑁𝑖𝐴
+=
+̄𝐺𝑖𝐵
+𝑁𝑖𝐵
+,
+(A.4)
+Then, by combining Eqs. (A.1) to (A.4), we can derive the following equation: 
+𝐺𝑖𝐵𝑁𝑖𝐴−𝐺𝑖𝐴𝑁𝑖𝐵
+𝐺𝑖𝐴𝑁𝑖𝐵𝑐𝑖
+= 𝑓(𝑟𝑖𝐵),
+∀𝑖∈
+(A.5)
+Thus, (𝑟𝑖𝐵, 𝐺𝑖𝐵𝑁𝑖𝐴−𝐺𝑖𝐴𝑁𝑖𝐵
+𝐺𝑖𝐴𝑁𝑖𝐵𝑐𝑖
+) is a data point on the curve 𝑓(⋅). Based on sufficiently large data, we can fit the functional form of 𝑓(⋅).
+The actual field experiment used to obtain the function 𝑓(⋅) was conducted by DiDi for the same service type investigated in 
+this study. The fitting accuracy of 𝑓(⋅) is presented in Table A.3, alongside a comparison with the fitting accuracy of the completion 
+rate 𝑐. We observe that the calibrated function 𝑓(⋅), obtained via the nonlinear least squares method, achieves high fitting accuracy 
+in both MSE and MAPE, with values of 2.53 × 10−3 and 6.56%, respectively. In contrast, although the MSE values for predicting 
+parameter 𝑐 remain relatively small (on the order of 10−2), the corresponding MAPE values are significantly higher. Specifically, the 
+MAPE is 27.36% when using the simulation-based prediction method and 17.25% when using the neural network-based approach.
+These results suggest that the calibrated function 𝑓(⋅), derived from actual field A/B test, provides reliable fitting performance. 
+In comparison, the parameter 𝑐 is more difficult to predict accurately and should therefore be handled within a decision-focused 
+learning framework.
+Appendix B. Obtaining the optimal solution with different forms of 𝒇(⋅)
+For different tasks, the form of 𝑓(⋅) can vary, and some of these forms may be non-differentiable and non-convex. In such cases, 
+the classical solvers may struggle to obtain precise solutions, making it difficult to meet the various model assumptions within the 
+DFL framework.
+Inspired by piecewise linearization techniques, we can address this issue by reformulating the general optimization problem 
+as an integer programming problem. In details, optimization problem Eq. (28) can be approximated using the following integer 
+programming formulation: 
+𝒛∗(𝒄) ∶= max
+∑
+𝑖∈
+𝑐𝑖𝑤𝑖
+(B.1a)
+s.t.
+𝑤𝑖= 𝑘𝑖
+∑
+𝑠∈
+𝑓(𝑅𝑖𝑠)𝑞𝑖𝑠,
+𝑖∈
+(B.1b)
+𝑟𝑖=
+∑
+𝑠∈
+𝑅𝑖𝑠𝑞𝑖𝑠,
+𝑖∈
+(B.1c)
+∑
+𝑠∈
+𝑞𝑖𝑠= 1,
+𝑖∈
+(B.1d)
+∑
+𝑖∈
+̄𝐺𝑖𝑟𝑖≤𝐵
+(B.1e)
+𝑟𝑙𝑏≤𝑟𝑖≤𝑟𝑢𝑏,
+∀𝑖∈
+(B.1f)
+𝑞𝑖𝑠∈{0, 1},
+𝑖∈, 𝑠∈
+(B.1g)
+Here, the decision variable 𝑞𝑖𝑠 is binary, where 𝑞𝑖𝑠= 1 indicates that subsidy choice 𝑠 is selected for city 𝑖, and 𝑞𝑖𝑠= 0 otherwise. 
+The constraint ∑
+𝑠𝑞𝑖𝑠= 1 ensures that for each city 𝑖, exactly one subsidy scheme is chosen, thus maintaining the uniqueness of 
+the allocation for each city. 𝑅𝑖𝑠 represents the subsidy rate for city 𝑖 when subsidy choice 𝑠 is selected, derived from the discrete 
+sampling of 𝑟𝑖. As the dimension of 𝑠 increases, the proposed linearization approximation becomes more accurate.
+Transportation Research Part C 180 (2025) 105301 
+21 
+
+
+--- Page 22 ---
+J. Yang et al.
+From the perspective of model implementation, 𝑓(⋅) can be arbitrary. Moreover, the structure of the transformed problem is 
+similar to the multiple-choice knapsack problem (Sinha and Zoltners, 1979). Therefore, we can leverage related algorithms to 
+improve solution efficiency (Pisinger, 1995; Akbar et al., 2006).
+Data availability
+The authors do not have permission to share data.
+References
+Agrawal, A., Amos, B., Barratt, S., Boyd, S., Diamond, S., Kolter, J.Z., 2019. Differentiable convex optimization layers. Adv. Neural Inf. Process. Syst. 32.
+Akbar, M.M., Rahman, M.S., Kaykobad, M., Manning, E.G., Shoja, G.C., 2006. Solving the multidimensional multiple-choice knapsack problem by constructing 
+convex hulls. Comput. Oper. Res. 33 (5), 1259–1273.
+Albert, J., Goldenberg, D., 2022. E-commerce promotions personalization via online multiple-choice knapsack with uplift modeling. In: Proceedings of the 31st 
+ACM International Conference on Information & Knowledge Management. pp. 2863–2872.
+Amos, B., Kolter, J.Z., 2017. Optnet: Differentiable optimization as a layer in neural networks. In: International Conference on Machine Learning. pp. 136–145.
+Asadpour, A., Wang, X., Zhang, J., 2020. Online resource allocation with limited flexibility. Manag. Sci. 66 (2), 642–666.
+Banerjee, N., Morton, A., Akartunalı, K., 2020. Passenger demand forecasting in scheduled transportation. European J. Oper. Res. 286 (3), 797–810.
+Berthet, Q., Blondel, M., Teboul, O., Cuturi, M., Vert, J.-P., Bach, F., 2020. Learning with differentiable pertubed optimizers. Adv. Neural Inf. Process. Syst. 33, 
+9508–9519.
+Bertsimas, D., Kallus, N., 2020. From predictive to prescriptive analytics. Manag. Sci. 66 (3), 1025–1044.
+Breiman, L., 2001. Random forests. Mach. Learn. 45, 5–32.
+Bright, I., Delarue, A., Lobel, I., 2024. Reducing marketplace interference bias via shadow prices. Manag. Sci..
+Castillo, J.C., Knoepfle, D., Weyl, E.G., 2024. Matching and pricing in ride hailing: Wild goose chases and how to solve them. Manag. Sci..
+Chang, X., Wu, J., de Almeida Correia, G.H., Sun, H., Feng, Z., 2022. A cooperative strategy for optimizing vehicle relocations and staff movements in cities 
+where several carsharing companies operate simultaneously. Transp. Res. Part E: Logist. Transp. Rev. 161, 102711.
+Chang, X., Wu, J., Sun, H., Yan, X., 2023. A Smart Predict-then-Optimize method for dynamic green bike relocation in the free-floating system. Transp. Res. 
+Part C: Emerg. Technol. 153, 104220.
+Chen, B., Chen, S., Dowlatabadi, J., Hong, Y.X., Iyer, V., Mantripragada, U., Narang, R., Pandey, A., Qin, Z., Sheikh, A., et al., 2024. Practical marketplace 
+optimization at uber using causally-informed machine learning. arXiv preprint arXiv:2407.19078.
+Chen, J., Liu, X., Liu, W., Jiang, H., 2023. Two-sided instant incentive optimization under a shared budget in ride-hailing services. In: 2023 IEEE 39th International 
+Conference on Data Engineering. ICDE, IEEE, pp. 3481–3493.
+Chen, Z., Liu, K., Wang, J., Yamamoto, T., 2022. H-ConvLSTM-based bagging learning approach for ride-hailing demand prediction considering imbalance 
+problems and sparse uncertainty. Transp. Res. Part C: Emerg. Technol. 140, 103709.
+Courcoubetis, C., Li, Y., Gao, S., Huang, Q., 2024. The impact of ride-hailing in city transportation. Front. Eng. Manag. 1–7.
+Donti, P., Amos, B., Kolter, J.Z., 2017. Task-based end-to-end model learning in stochastic optimization. In: Advances in Neural Information Processing Systems. 
+Vol. 30, Curran Associates, Inc..
+Elmachtoub, A.N., Grigas, P., 2022. Smart "predict, then optimize". Manag. Sci. 68, 9–26.
+Feng, Y., Niazadeh, R., Saberi, A., 2024. Two-stage stochastic matching and pricing with applications to ride hailing. Oper. Res. 72 (4), 1574–1594.
+Fielbaum, A., Alonso-Mora, J., 2020. Unreliability in ridesharing systems: Measuring changes in users’ times due to new requests. Transp. Res. Part C: Emerg. 
+Technol. 121, 102831.
+Gao, S., Ran, Q., Su, Z., Wang, L., Ma, W., Hao, R., 2024. Evaluation system for urban traffic intelligence based on travel experiences: A sentiment analysis 
+approach. Transp. Res. Part A: Policy Pr. 187, 104170.
+Gomez, J., Aguilera-García, Á., Dias, F.F., Bhat, C.R., Vassallo, J.M., 2021. Adoption and frequency of use of ride-hailing services in a European city: The case 
+of Madrid. Transp. Res. Part C: Emerg. Technol. 131, 103359.
+Guan, J., Bao, Y., 2024. Does e-hailing perform better than on-street searching? An investigation based on the temporal-spatial distributions of idle vehicles. 
+Front. Eng. Manag. 1–11.
+Hao, X., Peng, Z., Ma, Y., Wang, G., Jin, J., Hao, J., Chen, S., Bai, R., Xie, M., Xu, M., et al., 2020. Dynamic knapsack optimization towards efficient multi-channel 
+sequential advertising. In: International Conference on Machine Learning. PMLR, pp. 4060–4070.
+Jin, G., Cui, Y., Zeng, L., Tang, H., Feng, Y., Huang, J., 2020. Urban ride-hailing demand prediction with multiple spatio-temporal information fusion network. 
+Transp. Res. Part C: Emerg. Technol. 117, 102665.
+Li, Y., Sun, H., Lv, Y., 2021. Collaborative matching of ridesplitting and connection in the ridesourcing market. Fundam. Res. 1 (5), 517–533.
+Li, R., Zhang, H., Sun, M., Teng, F., Wan, C., Pineda, S., Kariniotakis, G., 2024. Decision-oriented learning for future power system decision-making under 
+uncertainty. arXiv preprint arXiv:2401.03680.
+Liang, E., Wen, K., Lam, W.H., Sumalee, A., Zhong, R., 2021. An integrated reinforcement learning and centralized programming approach for online taxi 
+dispatching. IEEE Trans. Neural Netw. Learn. Syst. 33 (9), 4742–4756.
+Liu, K., Chen, Z., Yamamoto, T., Tuo, L., 2022a. Exploring the impact of spatiotemporal granularity on the demand prediction of dynamic ride-hailing. IEEE 
+Trans. Intell. Transp. Syst. 24 (1), 104–114.
+Liu, S., He, L., Max Shen, Z.-J., 2021. On-time last-mile delivery: Order assignment with travel-time predictors. Manag. Sci. 67 (7), 4095–4119.
+Liu, R., Hou, Z., 2023. UniTE: A unified treatment effect estimation method for one-sided and two-sided marketing. In: Proceedings of the 32nd ACM International 
+Conference on Information and Knowledge Management. pp. 1472–1481.
+Liu, Y., Jia, R., Ye, J., Qu, X., 2022b. How machine learning informs ride-hailing services: A survey. Commun. Transp. Res. 2, 100075.
+Liu, T., Xu, Z., Vignon, D., Yin, Y., Qin, Z., Li, Q., 2023. Threshold-based incentives for ride-sourcing drivers: Implications on supply management and welfare 
+effects. Transp. Res. Part C: Emerg. Technol. 156, 104323.
+Mandi, J., Kotary, J., Berden, S., Mulamba, M., Bucarey, V., Guns, T., Fioretto, F., 2023. Decision-focused learning: Foundations, state of the art, benchmark and 
+future opportunities. arXiv preprint arXiv:2307.13565.
+Mo, D., Yu, J., Chen, X.M., 2020. Modeling and managing heterogeneous ride-sourcing platforms with government subsidies on electric vehicles. Transp. Res. 
+Part B: Methodol. 139, 447–472.
+Pisinger, D., 1995. A minimal algorithm for the multiple-choice knapsack problem. European J. Oper. Res. 83 (2), 394–410.
+Rubin, D.B., 2005. Causal inference using potential outcomes: Design, modeling, decisions. J. Amer. Statist. Assoc. 100 (469), 322–331.
+Transportation Research Part C 180 (2025) 105301 
+22 
+
+
+--- Page 23 ---
+J. Yang et al.
+Sadana, U., Chenreddy, A., Delage, E., Forel, A., Frejinger, E., Vidal, T., 2024. A survey of contextual optimization methods for decision-making under uncertainty. 
+European J. Oper. Res..
+Sinha, P., Zoltners, A.A., 1979. The multiple-choice knapsack problem. Oper. Res. 27 (3), 503–515.
+Su, Z., Chow, A.H., Fang, C., Liang, E., Zhong, R., 2023. Hierarchical control for stochastic network traffic with reinforcement learning. Transp. Res. Part B: 
+Methodol. 167, 196–216.
+Su, Z., Chow, A.H., Zheng, N., Huang, Y., Liang, E., Zhong, R., 2020. Neuro-dynamic programming for optimal control of macroscopic fundamental diagram 
+systems. Transp. Res. Part C: Emerg. Technol. 116, 102628.
+Su, Z., Chow, A.H., Zhong, R., 2021. Adaptive network traffic control with an integrated model-based and data-driven approach and a decentralised solution 
+method. Transp. Res. Part C: Emerg. Technol. 128, 103154.
+Tafreshian, A., Masoud, N., 2022. A truthful subsidy scheme for a peer-to-peer ridesharing market with incomplete information. Transp. Res. Part B: Methodol. 
+162, 130–161.
+Tang, B., Khalil, E.B., 2022. Pyepo: A pytorch-based end-to-end predict-then-optimize library for linear and integer programming. arXiv preprint arXiv:2206.14234.
+Tang, W., Xie, N., Mo, D., Cai, Z., Lee, D.-H., Chen, X.M., 2023. Optimizing subsidy strategies of the ride-sourcing platform under government regulation. Transp. 
+Res. Part E: Logist. Transp. Rev. 173, 103112.
+Tian, X., Yan, R., Liu, Y., Wang, S., 2023. A Smart Predict-then-Optimize method for targeted and cost-effective maritime transportation. Transp. Res. Part B: 
+Methodol. 172, 32–52.
+Tirachini, A., 2020. Ride-hailing, travel behaviour and sustainable mobility: an international review. Transp. 47 (4), 2011–2047.
+Wager, S., Xu, K., 2021. Experimenting in equilibrium. Manag. Sci. 67 (11), 6694–6715.
+Wang, C., Shi, X., Xu, S., Wang, Z., Fan, Z., Feng, Y., You, A., Chen, Y., 2023. A multi-stage framework for online bonus allocation based on constrained user 
+intent detection. In: Proceedings of the 29th ACM SIGKDD Conference on Knowledge Discovery and Data Mining. pp. 5028–5038.
+Wang, H., Yang, H., 2019. Ridesourcing systems: A framework and review. Transp. Res. Part B: Methodol. 129, 122–155.
+Wu, Z., Wang, L., Huang, F., Zhou, L., Song, Y., Ye, C., Nie, P., Ren, H., Hao, J., He, R., et al., 2022. A framework for multi-stage bonus allocation in meal 
+delivery platform. In: Proceedings of the 28th ACM SIGKDD Conference on Knowledge Discovery and Data Mining. pp. 4195–4203.
+Xie, N., Tang, W., Zhu, J., Li, J., Chen, X.M., 2023. Understanding causal effects of ride-sourcing subsidy: A novel generative adversarial networks approach. 
+Transp. Res. Part C: Emerg. Technol. 157, 104371.
+Xu, Z., Yin, Y., Chao, X., Zhu, H., Ye, J., 2021. A generalized fluid model of ride-hailing systems. Transp. Res. Part B: Methodol. 150, 587–605.
+Xu, Z., Yin, Y., Ye, J., 2020. On the supply curve of ride-hailing systems. Transp. Res. Part B: Methodol. 132, 29–43.
+Yan, Z., Wang, S., Zhou, G., Lin, J., Jiang, P., 2023. An end-to-end framework for marketing effectiveness optimization under budget constraint. arXiv preprint 
+arXiv:2302.04477.
+Yang, J., Liang, E., Su, Z., Zou, Z., Zhen, P., Guo, J., Ma, W., An, K., 2025. DFF: Decision-focused fine-tuning for smarter predict-then-optimize with limited 
+data. Proc. AAAI Conf. Artif. Intell. 39 (25), 26868–26876.
+Zar, J.H., 2005. Spearman rank correlation. Encycl. Biostat. 7.
+Zhang, Q., Liu, Y., Fan, Z.-P., 2023. Short-term subsidy strategy for new users of ride-hailing platform with user base. Comput. Ind. Eng. 179, 109177.
+Zhou, H., Li, S., Jiang, G., Zheng, J., Wang, D., 2023. Direct heterogeneous causal learning for resource allocation problems in marketing. In: Proceedings of the 
+AAAI Conference on Artificial Intelligence. pp. 5446–5454.
+Zhu, Z., Ke, J., Wang, H., 2021. A mean-field Markov decision process model for spatial-temporal subsidies in ride-sourcing markets. Transp. Res. Part B: 
+Methodol. 150, 540–565.
+Zhu, C., Wu, J., Guo, X., Sun, H., Lee, D.-H., 2024. Joint optimization of bus scheduling and seat allocation for reservation-based travel. Transp. Res. Part C: 
+Emerg. Technol. 163, 104631.
+Transportation Research Part C 180 (2025) 105301 
+23 
+

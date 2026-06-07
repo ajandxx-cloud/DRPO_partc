@@ -1,0 +1,40 @@
+{
+  "instance": "Beijing_Yanjiao",
+  "scenario": "Yanjiao-Guomao many-to-one commuter DRT",
+  "variant": "base",
+  "variant_description": "Original density-weighted homes and priority/random meeting points.",
+  "seed": 0,
+  "passengers": 400,
+  "n_meeting_points": 100,
+  "k_nearest": 10,
+  "perturbation_sigma": 0.0008,
+  "perturbation_max": 0.002,
+  "home_edge_share": 0.0,
+  "mp_edge_share": 0.0,
+  "density_radius": 0.005,
+  "depot": {
+    "name": "郎家园/国贸",
+    "lon": 116.461,
+    "lat": 39.9087
+  },
+  "coordinate_system": "local_metric_km",
+  "projection": "metric",
+  "bounds": {
+    "lon_min": 116.456,
+    "lon_max": 117.05080799999999,
+    "lat_min": 39.895047999999996,
+    "lat_max": 39.984542000000005,
+    "lon_origin": 116.456,
+    "lat_origin": 39.895047999999996,
+    "ref_lat": 39.939795000000004,
+    "x_span_km": 50.76758173140929,
+    "y_span_km": 9.892666760001003,
+    "coordinate_unit": "km"
+  },
+  "data_sources": {
+    "residential_pois": "Amap POI 2.0 (120300/120302/120303/120304)",
+    "bus_stops": "Amap POI 2.0 (150700)",
+    "key_stops": "Customized commuter bus + 818 route keyword search"
+  },
+  "generation_method": "Residential POI density-weighted sampling + Gaussian perturbation"
+}

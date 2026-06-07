@@ -1,0 +1,57 @@
+{
+  "instance": "Beijing_Yanjiao",
+  "scenario": "Yanjiao-Guomao normalized commuter DRT",
+  "variant": "commuter_normalized",
+  "seed": 1,
+  "passengers": 400,
+  "n_meeting_points": 80,
+  "k_nearest": 8,
+  "coordinate_system": "beijing_bus_style_normalized",
+  "projection": "normalized_commuter",
+  "depot": {
+    "name": "Guomao",
+    "lon": 116.461,
+    "lat": 39.9087
+  },
+  "bounds": {
+    "coordinate_unit": "beijing_bus_normalized_unit",
+    "x_span_target": 55.51,
+    "y_span_target": 28.82,
+    "raw_x_max_km": 49.946563939535686,
+    "raw_y_max_km": 7.84745567999965,
+    "x_scale": 1.1113877636747804,
+    "y_scale": 3.672527909071451,
+    "negative_x_clamped": 0,
+    "negative_y_clamped": 41
+  },
+  "true_metric_geometry": {
+    "all_home_mp_km_mean": 8.77740522337584,
+    "nearest_home_mp_km_mean": 0.4728621674133916,
+    "chosen_home_mp_km_mean": 1.4657444660010719,
+    "chosen_home_mp_km_p50": 1.419177962168833,
+    "chosen_home_mp_km_p90": 2.4374302526074505,
+    "chosen_home_mp_km_max": 4.66867621714754,
+    "adjacency_unique_rows": 113
+  },
+  "duration_matrix": {
+    "max_duration_s": 6577,
+    "home_to_depot_mean_s": 4168.1575,
+    "mp_to_depot_mean_s": 4551.8,
+    "home_mp_selected_mean_s": 393.016875
+  },
+  "choice_model": {
+    "choice_utility_sidecar": null,
+    "walking_distance_sidecar": "yanjiao_commuter_norm_400_1_walk_distance.npy",
+    "description": "No *_choice_utility.npy is generated. Runtime choice utility is strictly composed of predicted in-vehicle travel time, home-to-meeting-point distance, price adjustment, and the outside-option utility."
+  },
+  "amap_calibration": {
+    "enabled": false,
+    "scale": 1.0,
+    "samples": []
+  },
+  "generation_method": "Normalized Beijing_bus-style coordinates for model input; true local-km geometry for duration matrix and nearest meeting-point candidate adjacency; lower MP density and k to increase realistic choice pressure without adding extra choice-utility covariates.",
+  "data_sources": {
+    "residential_pois": "data/yanjiao/residential_pois.csv",
+    "bus_stops": "data/yanjiao/bus_stops.csv"
+  }
+}

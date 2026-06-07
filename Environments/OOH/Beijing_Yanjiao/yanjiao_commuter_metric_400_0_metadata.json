@@ -1,0 +1,111 @@
+{
+  "instance": "Beijing_Yanjiao",
+  "scenario": "Yanjiao-Guomao commuter-aware DRT",
+  "variant": "commuter_metric",
+  "seed": 0,
+  "passengers": 400,
+  "n_meeting_points": 100,
+  "k_nearest": 10,
+  "projection": "metric",
+  "coordinate_system": "local_metric_km",
+  "bounds": {
+    "lon_min": 116.456,
+    "lon_max": 117.050923,
+    "lat_min": 39.895047999999996,
+    "lat_max": 39.984692,
+    "lon_origin": 116.456,
+    "lat_origin": 39.895047999999996,
+    "ref_lat": 39.93987,
+    "x_span_km": 50.777341466458246,
+    "y_span_km": 9.909247760000769,
+    "coordinate_unit": "km"
+  },
+  "depot": {
+    "name": "Guomao",
+    "lon": 116.461,
+    "lat": 39.9087
+  },
+  "generation_method": "Residential POI density sampling with edge heterogeneity; commuter-quality bus-stop selection; calibrated corridor vehicle times; separate static choice utility sidecar.",
+  "duration_matrix": {
+    "max_duration_s": 4749,
+    "depot_to_node_mean_s": 3094.522,
+    "mp_to_depot_mean_s": 3343.81,
+    "home_to_depot_mean_s": 3032.2
+  },
+  "choice_utility": {
+    "walk_min_mean": 109.99459838867188,
+    "walk_min_p50": 98.74534606933594,
+    "walk_min_p90": 221.4776153564453,
+    "chosen_walk_min_mean": 21.261661529541016,
+    "choice_util_mean": -3.9579129219055176,
+    "choice_util_p10": -8.533438682556152,
+    "choice_util_p90": -0.43002399802207947,
+    "adjacency_unique_rows": 133
+  },
+  "mp_quality": {
+    "quality_mean": 1.8184,
+    "quality_min": 0.67,
+    "quality_max": 3.5,
+    "direct_share": 0.4,
+    "suspended_count": 6
+  },
+  "amap_calibration": {
+    "enabled": true,
+    "scale": 0.7790519085362086,
+    "median_raw_ratio": 0.7790519085362086,
+    "mean_raw_ratio": 0.7780455389739204,
+    "n_valid_samples": 4,
+    "samples": [
+      {
+        "node_id": 414,
+        "api_duration_s": 3028,
+        "api_distance_m": 36179,
+        "model_duration_s": 3806.83,
+        "ratio": 0.7954
+      },
+      {
+        "node_id": 13,
+        "api_duration_s": 3151,
+        "api_distance_m": 35264,
+        "model_duration_s": 3861.27,
+        "ratio": 0.8161
+      },
+      {
+        "node_id": 88,
+        "api_duration_s": 2831,
+        "api_distance_m": 34856,
+        "model_duration_s": 3835.91,
+        "ratio": 0.738
+      },
+      {
+        "node_id": 153,
+        "api_duration_s": 2945,
+        "api_distance_m": 35825,
+        "model_duration_s": 3861.33,
+        "ratio": 0.7627
+      },
+      {
+        "node_id": 373,
+        "error": "Amap driving API failed: {'status': '0', 'info': 'CUQPS_HAS_EXCEEDED_THE_LIMIT', 'infocode': '10021'}"
+      },
+      {
+        "node_id": 70,
+        "error": "Amap driving API failed: {'status': '0', 'info': 'CUQPS_HAS_EXCEEDED_THE_LIMIT', 'infocode': '10021'}"
+      },
+      {
+        "node_id": 193,
+        "error": "Amap driving API failed: {'status': '0', 'info': 'CUQPS_HAS_EXCEEDED_THE_LIMIT', 'infocode': '10021'}"
+      },
+      {
+        "node_id": 451,
+        "error": "Amap driving API failed: {'status': '0', 'info': 'CUQPS_HAS_EXCEEDED_THE_LIMIT', 'infocode': '10021'}"
+      }
+    ],
+    "cache_path": "C:\\Users\\39583\\Desktop\\4_Publication\\DRT\\ooh_code\\data\\yanjiao\\amap_driving_cache.json"
+  },
+  "data_sources": {
+    "residential_pois": "data/yanjiao/residential_pois.csv",
+    "bus_stops": "data/yanjiao/bus_stops.csv",
+    "amap_driving_api": true
+  }
+}
