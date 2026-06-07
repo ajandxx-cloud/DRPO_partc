@@ -91,8 +91,8 @@ class Heuristic(Agent):
                 pp_costs[idx] = mltplr * ((1-theta)* ( self.cheapestInsertionCosts(pp.location, state[1]) )+ theta* ( self.historicCosts(pp.location,self.historicRoutes) ))
                 sum_mnl += exp(util+(state[0].incentiveSensitivity*(pp_costs[idx]-self.revenue)))
        
-        #2 obtain lambert w0
-        lambertw0 = (lambertw(sum_mnl/e).real+1)/state[0].incentiveSensitivity
+        #2 obtain lambert w0, scaled by exp(U_external) when the external option is enabled
+        lambertw0 = (lambertw(self.adjust_lambert_sum_for_external_option(sum_mnl)/e).real+1)/state[0].incentiveSensitivity
         
         # 3 calculate discounts/prices
         a_hat = np.zeros(len(pps)+1)
@@ -149,6 +149,8 @@ class Heuristic(Agent):
             return 0.0
         else:
             #obtain final CVRP schedule after end of booking horizon
+            if len(np.atleast_1d(data['id'])) <= 1:
+                return 0.0
             if self.load_data:
                 data["distance_matrix"] = get_dist_mat_HGS(self.dist_matrix,data['id'])
             cost = self.reopt_HGS_final(data)#do a final reopt
