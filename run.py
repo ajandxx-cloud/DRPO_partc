@@ -45,7 +45,9 @@ class Solver:
                 _ = self.model.update(route_data,state,False)
                 if step >= self.max_steps or done:
                     travel_time = self.model.update(route_data,state,True)#do full update when episode is done
-                    rewards.append(Utils.total_costs(stats[1],stats[2],travel_time,stats[3],stats[6],self.config))
+                    cost_multiplier = (self.config.driver_wage + self.config.fuel_cost) / 3600
+                    episode_cost = (stats[2] + travel_time) * cost_multiplier + sum(stats[3]) - sum(stats[6])
+                    rewards.append(episode_cost)
                     break
             
             if episode%checkpoint == 0 or episode == self.config.max_episodes-1:
