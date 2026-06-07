@@ -87,6 +87,10 @@ class Parser(object):
         parser.add_argument("--base_util", default=-2.0, help="base utility across all alternativesy", type=float)  # -2.0
         parser.add_argument("--home_util", default=3.2, help="utility given to home delivery", type=float)  # 3.55 amazon, 3.2 homberger
         parser.add_argument("--dissatisfaction", default=False, help="customer dissatisfaction penalty when all delivery options have too high prices", type=self.str2bool)
+        parser.add_argument("--external_option", default=True, help="if True, customers can choose an outside/no-purchase option", type=self.str2bool)
+        parser.add_argument("--external_base_util", default=0.0, help="base_external in U_external = base_external - alpha * external_price", type=float)
+        parser.add_argument("--external_price", default=0.0, help="reference price/cost of the outside option", type=float)
+        parser.add_argument("--external_price_sensitivity", default=None, help="alpha in U_external = base_external - alpha * external_price; defaults to -incentive_sens", type=float)
 
         parser.add_argument("--revenue", default=50, help="revenue per customer, only used for pricing decision", type=float)  # 90
         parser.add_argument("--fuel_cost", default=0.6, help="costs of fuel per distance unit", type=float)  # 0.3/0.6
