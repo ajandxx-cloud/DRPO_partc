@@ -65,6 +65,7 @@ class DSPO_PLUS(DSPO):
             f"spo_warmup={self.spo_warmup_episodes}, "
             f"spo_rampup={self.spo_rampup_episodes}, "
             f"max_spo_weight={self.max_spo_loss_weight}, "
+            f"external_option={self.external_option}, "
             "menu_selection=False"
         )
 
@@ -136,7 +137,9 @@ class DSPO_PLUS(DSPO):
                     pp_utils[idx] + customer.incentiveSensitivity * (pp_costs[idx] - self.revenue)
                 )
 
-        lambertw0 = (lambertw(sum_mnl / e).real + 1.0) / customer.incentiveSensitivity
+        lambertw0 = (
+            lambertw(self.adjust_lambert_sum_for_external_option(sum_mnl) / e).real + 1.0
+        ) / customer.incentiveSensitivity
 
         a_hat = np.zeros(len(pps) + 1, dtype=np.float64)
         a_hat[0] = homeCosts - self.revenue - lambertw0
@@ -276,7 +279,11 @@ class DSPO_PLUS(DSPO):
         pp_utils: List[float],
         incentive_sensitivity: float,
     ) -> Optional[np.ndarray]:
-        """DSPO pricing oracle followed by MNL probabilities."""
+        """DSPO pricing oracle followed by internal MNL probabilities.
+
+        If the external option is enabled, the returned probabilities are only
+        for internal options and therefore may sum to less than one.
+        """
         costs_np = np.asarray(costs_np, dtype=np.float64).reshape(-1)
         K = int(costs_np.shape[0])
         if K <= 0 or len(pp_utils) != K - 1:
@@ -296,7 +303,7 @@ class DSPO_PLUS(DSPO):
         if not np.isfinite(sum_mnl) or sum_mnl <= 0:
             return None
 
-        lambertw0 = (lambertw(sum_mnl / np.e).real + 1.0) / s
+        lambertw0 = (lambertw(self.adjust_lambert_sum_for_external_option(sum_mnl) / np.e).real + 1.0) / s
         if not np.isfinite(lambertw0):
             return None
 
@@ -311,9 +318,14 @@ class DSPO_PLUS(DSPO):
             v_terms.append(float(pp_utils[j]) + s * prices[j + 1])
 
         v_terms = np.asarray(v_terms, dtype=np.float64)
-        vmax = float(np.max(v_terms))
-        exp_terms = np.exp(v_terms - vmax)
-        denom = float(np.sum(exp_terms))
+        if self.external_option:
+            vmax = float(max(np.max(v_terms), self.get_external_utility()))
+            exp_terms = np.exp(v_terms - vmax)
+            denom = float(np.sum(exp_terms) + np.exp(self.get_external_utility() - vmax))
+        else:
+            vmax = float(np.max(v_terms))
+            exp_terms = np.exp(v_terms - vmax)
+            denom = float(np.sum(exp_terms))
         if not np.isfinite(denom) or denom <= 0:
             return None
 
