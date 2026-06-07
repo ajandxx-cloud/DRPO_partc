@@ -71,9 +71,6 @@ class Parser(object):
         parser.add_argument("--clip_service_time", default=10, help="maximum service time in minutes", type=float)#10
         parser.add_argument("--driver_wage", default=30, help="salary of driver per hour", type=float)#30
 
-        parser.add_argument("--home_failure", default=0.1, help="the probability of delivery failure for home delivery", type=float)#0.1
-        parser.add_argument("--failure_cost", default=20.0, help="the monetary costs of a delivery failure", type=float)#10
-
         parser.add_argument("--reopt", default=10000000, help="re-opt frequency of cheapest insertion route using HGS", type=int)
         parser.add_argument("--hgs_reopt_time", default=1.1, help="re-opt HGS time limit", type=float)
 
@@ -136,5 +133,3 @@ class Parser(object):
 
     def get_parser(self):
         return self.parser
-
-
