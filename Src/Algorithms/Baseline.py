@@ -13,6 +13,8 @@ class Baseline(Agent):
         #problem variant: pricing or offering
         if self.config.pricing:
             self.get_action = self.get_action_pricing
+            self.max_p = config.max_price
+            self.min_p = config.min_price
         else:
             self.get_action = self.get_action_offer
             self.k = config.k
@@ -66,6 +68,7 @@ class Baseline(Agent):
             if pp.remainingCapacity > 0:
                 a_hat[idx+1] = self.pp_price
         
+        a_hat = np.clip(a_hat, self.min_p, self.max_p)
         return np.around(a_hat,decimals=2)
     
     def update(self,data,state,done):
@@ -73,6 +76,8 @@ class Baseline(Agent):
             return 0.0
         else:
             #obtain final CVRP schedule after end of booking horizon
+            if len(np.atleast_1d(data['id'])) <= 1:
+                return 0.0
             if self.load_data:
                 data["distance_matrix"] = get_dist_mat_HGS(self.dist_matrix,data['id'])
             fleet,cost = self.reopt_HGS_final(data)#do a final reopt
