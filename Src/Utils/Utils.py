@@ -53,11 +53,10 @@ class Logger(object):
         fsync(self.log.fileno())
 
 
-def total_costs(count_home,service_times,travel_time,discount_costs,charge_revenue,config):
+def total_costs(service_times,travel_time,discount_costs,charge_revenue,config):
     cost_multiplier = (config.driver_wage+config.fuel_cost) / 3600
     total_costs = (service_times+travel_time)*cost_multiplier + sum(discount_costs) - sum(charge_revenue)
-    total_costs += count_home*config.home_failure*config.failure_cost#costs of failed delivery
-    
+
     return total_costs
 
 def plot_training_curves(rewards,config):

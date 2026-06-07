@@ -45,7 +45,7 @@ class Solver:
                 _ = self.model.update(route_data,state,False)
                 if step >= self.max_steps or done:
                     travel_time = self.model.update(route_data,state,True)#do full update when episode is done
-                    rewards.append(Utils.total_costs(stats[1],stats[2],travel_time,stats[3],stats[6],self.config))
+                    rewards.append(Utils.total_costs(stats[2],travel_time,stats[3],stats[6],self.config))
                     break
             
             if episode%checkpoint == 0 or episode == self.config.max_episodes-1:
@@ -134,7 +134,6 @@ class Solver:
             trvl = 0
             trvl_list = []
             srvc = 0
-            fail = 0
             distance = 0
             count_pp = 0
             for i in home_delivery_loc:
@@ -149,20 +148,17 @@ class Solver:
                 trvl += (travel_time[i][0] * cost_multiplier)
                 trvl_list.append(travel_time[i][0] * cost_multiplier)
                 srvc += (service_time[i][0] * cost_multiplier)
-                fail += count_home_delivery[i][
-                            0] * self.config.home_failure * self.config.failure_cost  # costs of failed delivery
 
             d_list = np.concatenate(accepted_discount)
             r_list = np.concatenate(accepted_price)
             print('percentage home delivery: ', cnt / len(home_delivery_loc))
             print('travel costs: ', trvl / episodes)
             print('service costs: ', srvc / episodes)
-            print('failure costs: ', fail / episodes)
             print('Avg. Charge: ', np.mean(r_list), 'std.: ', np.std(r_list))
             print('Avg. Discount: ', -np.mean(d_list), 'std.: ', np.std(d_list))
             print('Charge revenue: ', np.sum(r_list) / episodes)
             print('Discount costs: ', -np.sum(d_list) / episodes)
-            print('total costs: ', (trvl + srvc + fail - np.sum(d_list) - np.sum(r_list)) / episodes)
+            print('total costs: ', (trvl + srvc - np.sum(d_list) - np.sum(r_list)) / episodes)
             print('average travelled by customers: ', distance / count_pp)
 
             return total_cost, accepted_price, step_time

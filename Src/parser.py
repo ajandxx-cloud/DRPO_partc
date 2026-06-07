@@ -97,6 +97,7 @@ class Parser(object):
         parser.add_argument("--home_failure", default=0.1, help="the probability of delivery failure for home delivery", type=float)  # 0.1
         parser.add_argument("--failure_cost", default=20.0, help="the monetary costs of a delivery failure", type=float)  # 10
 
+
         parser.add_argument("--reopt", default=10000000, help="re-opt frequency of cheapest insertion route using HGS", type=int)
         parser.add_argument("--hgs_reopt_time", default=1.1, help="HGS re-opt time limit", type=float)
         parser.add_argument("--hgs_final_time", default=1.5, help="HGS time limit for obtaining final routing schedule", type=float)
