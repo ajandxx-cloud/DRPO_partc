@@ -1,1 +1,2 @@
 Patch plan for DRT scenario: remove failure_cost from parser, cost calculation, and evaluation total-cost reporting.
+Status: direct source-file updates are being prepared on this branch.
