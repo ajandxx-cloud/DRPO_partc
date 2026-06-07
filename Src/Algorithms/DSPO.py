@@ -151,8 +151,8 @@ class DSPO(Agent):
                     pp_costs[idx] = mltplr * ((1-theta)* ( self.cheapestInsertionCosts(pp.location, state[1]) )+ theta*(costs[idx+2]-costs[0]) )
                     sum_mnl += exp(util+(state[0].incentiveSensitivity*(pp_costs[idx]-self.revenue)))
            
-            #2 obtain lambert w0
-            lambertw0 = (lambertw(sum_mnl/e).real+1)/state[0].incentiveSensitivity
+            #2 obtain lambert w0, scaled by exp(U_external) when the external option is enabled
+            lambertw0 = (lambertw(self.adjust_lambert_sum_for_external_option(sum_mnl)/e).real+1)/state[0].incentiveSensitivity
             
             # 3 calculate discounts/prices
             a_hat = np.zeros(len(pps)+1)
@@ -213,7 +213,7 @@ class DSPO(Agent):
         for i, feat in enumerate(new_feat):
             costs.append(self.supervised_ml(feat.unsqueeze(0).to(self.device),cap_feat[i].unsqueeze(0).to(self.device)).item())
         return costs
-                                                       
+                                                        
     def mnl_euclid(self,customer,parcelpoint):
         distance = self.getdistance_euclidean(customer.home,parcelpoint.location)#distance from parcelpoint to home
         beta_p = -exp(-distance/self.dist_scaler)
@@ -228,6 +228,8 @@ class DSPO(Agent):
     def update(self,data,state,done=False):
         #first obtain data      
         if not done:
+            if data.get("last_choice_external", False):
+                return 0.0
             self.features = np.vstack(( self.features, self.get_feature_rep(data).flatten()))
             try:
                 self.cap_features = np.vstack(( self.cap_features, state[2]["parcelpoints"][data["id"][-1]].remainingCapacity))
@@ -236,15 +238,19 @@ class DSPO(Agent):
             return 0.0
         else:
             #obtain final CVRP schedule after end of booking horizon
-            if self.load_data:
-                data["distance_matrix"] = get_dist_mat_HGS(self.dist_matrix,data['id'])
-            fleet,cost = self.reopt_HGS_final(data)#do a final reopt
-            
-            target = self.get_per_customer_costs(fleet)
-            target = sorted(target, key=itemgetter(0))#sort in order of arrival (same as features)
-            penalties = 20 / (self.cap_features + 0.1)
-            adjusted_target = [t + p for t, p in zip(target, penalties)]
-            self.memory.add(self.features, self.cap_features, adjusted_target)
+            if len(np.atleast_1d(data['id'])) <= 1:
+                cost = 0.0
+            else:
+                if self.load_data:
+                    data["distance_matrix"] = get_dist_mat_HGS(self.dist_matrix,data['id'])
+                fleet,cost = self.reopt_HGS_final(data)#do a final reopt
+                
+                target = self.get_per_customer_costs(fleet)
+                target = sorted(target, key=itemgetter(0))#sort in order of arrival (same as features)
+                penalties = 20 / (self.cap_features + 0.1)
+                adjusted_target = [t + p for t, p in zip(target, penalties)]
+                if self.features.shape[0] > 0:
+                    self.memory.add(self.features, self.cap_features, adjusted_target)
             
             self.features = np.empty((0,self.n_layers*self.grid_dim*self.grid_dim))
             self.cap_features = np.empty((0,1))
