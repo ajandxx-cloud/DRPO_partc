@@ -58,7 +58,7 @@ class Config(object):
             self.coords,self.dist_matrix,self.n_parcelpoints,self.adjacency,self.service_times = Utils.load_demand_data(self.paths['root'],args.instance,args.data_seed,args.clip_service_time,args.truck_speed)
             self.coords_test,self.dist_matrix_test,self.n_parcelpoints_test,self.adjacency_test,self.service_times_test = Utils.load_demand_data(self.paths['root'],args.instance,args.data_seed_test,args.clip_service_time,args.truck_speed)
         else:#only used for debug purpose
-            self.coords,self.dist_matrix,self.n_parcelpoints,self.adjacency = Utils.generate_demand_data(100),[],6,np.ones(6),np.ones(100)
+            self.coords,self.dist_matrix,self.n_parcelpoints,self.adjacency,self.service_times = Utils.generate_demand_data(100),[],6,np.ones(6),np.ones(100)
             self.coords_test,self.dist_matrix_test,self.n_parcelpoints_test,self.adjacency_test,self.service_times_test = Utils.generate_demand_data(100),[],6,np.ones(6),np.ones(100)
 
         # Get the domain and algorithm
@@ -98,16 +98,45 @@ class Config(object):
     def get_domain(self, tag, args, path,test_env=False):
         if tag[:11] == 'Parcelpoint':
             obj = Utils.dynamic_load(path, tag, load_class=True)
+            common_kwargs = dict(
+                model=args.algo_name,
+                max_steps_r=args.max_steps_r,
+                max_steps_p=args.max_steps_p,
+                pricing=args.pricing,
+                n_vehicles=args.n_vehicles,
+                veh_capacity=args.veh_capacity,
+                parcelpoint_capacity=args.parcelpoint_capacity,
+                fraction_capacitated=args.fraction_capacitated,
+                incentive_sens=args.incentive_sens,
+                base_util=args.base_util,
+                home_util=args.home_util,
+                reopt=args.reopt,
+                load_data=args.load_data,
+                dissatisfaction=self.dissatisfaction,
+                hgs_time=args.hgs_reopt_time,
+                external_option=args.external_option,
+                external_base_util=args.external_base_util,
+                external_price_sensitivity=args.external_price_sensitivity,
+                external_price=args.external_price,
+            )
             if test_env:
-                env = obj(model=args.algo_name,max_steps_r=args.max_steps_r,max_steps_p=args.max_steps_p,pricing=args.pricing,n_vehicles=args.n_vehicles,
-                      veh_capacity=args.veh_capacity,parcelpoint_capacity=args.parcelpoint_capacity,fraction_capacitated=args.fraction_capacitated,incentive_sens=args.incentive_sens,base_util=args.base_util,
-                      home_util=args.home_util,reopt=args.reopt,load_data=args.load_data,coords=self.coords_test,dist_matrix=self.dist_matrix_test,
-                      n_parcelpoints=self.n_parcelpoints_test,adjacency=self.adjacency_test,service_times=self.service_times_test,dissatisfaction=self.dissatisfaction,hgs_time=args.hgs_reopt_time)
+                env = obj(
+                    **common_kwargs,
+                    coords=self.coords_test,
+                    dist_matrix=self.dist_matrix_test,
+                    n_parcelpoints=self.n_parcelpoints_test,
+                    adjacency=self.adjacency_test,
+                    service_times=self.service_times_test,
+                )
             else:
-                env = obj(model=args.algo_name,max_steps_r=args.max_steps_r,max_steps_p=args.max_steps_p,pricing=args.pricing,n_vehicles=args.n_vehicles,
-                      veh_capacity=args.veh_capacity,parcelpoint_capacity=args.parcelpoint_capacity,fraction_capacitated=args.fraction_capacitated,incentive_sens=args.incentive_sens,base_util=args.base_util,
-                      home_util=args.home_util,reopt=args.reopt,load_data=args.load_data,coords=self.coords,dist_matrix=self.dist_matrix,
-                      n_parcelpoints=self.n_parcelpoints,adjacency=self.adjacency,service_times=self.service_times,dissatisfaction=self.dissatisfaction,hgs_time=args.hgs_reopt_time)
+                env = obj(
+                    **common_kwargs,
+                    coords=self.coords,
+                    dist_matrix=self.dist_matrix,
+                    n_parcelpoints=self.n_parcelpoints,
+                    adjacency=self.adjacency,
+                    service_times=self.service_times,
+                )
             return env
 
 if __name__ == '__main__':
