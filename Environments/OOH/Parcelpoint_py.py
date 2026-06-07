@@ -29,7 +29,11 @@ class Parcelpoint_py(object):
                  adjacency=[],
                  service_times=[],
                  dissatisfaction=False,
-                 hgs_time=3.0):
+                 hgs_time=3.0,
+                 external_option=False,
+                 external_base_util=0.0,
+                 external_price_sensitivity=None,
+                 external_price=0.0):
 
         #episode length params
         self.max_steps = 0
@@ -75,6 +79,12 @@ class Parcelpoint_py(object):
         self.home_util = home_util
         self.incentive_sens = incentive_sens
         self.dissatisfaction = dissatisfaction
+        self.external_option = bool(external_option)
+        self.external_base_util = float(external_base_util)
+        if external_price_sensitivity is None:
+            external_price_sensitivity = max(-float(incentive_sens), 0.0)
+        self.external_price_sensitivity = float(external_price_sensitivity)
+        self.external_price = float(external_price)
 
         self.newCustomer = Customer
         self.fleet = get_fleet([self.depot,self.depot],self.n_vehicles,self.veh_capacity)
@@ -82,12 +92,32 @@ class Parcelpoint_py(object):
         #pricing of offering problem variant
         if pricing:
             #self.action_space_matrix = self.get_actions(pricing,self.n_parcelpoints)
-            self.customerchoice = customerchoicemodel(base_util,self.dist_scaler,self.utils.getdistance_euclidean,self.dist_matrix,self.n_unique_customer_locs)
+            self.customerchoice = customerchoicemodel(
+                base_util,
+                self.dist_scaler,
+                self.utils.getdistance_euclidean,
+                self.dist_matrix,
+                self.n_unique_customer_locs,
+                external_option=self.external_option,
+                external_base_util=self.external_base_util,
+                external_price_sensitivity=self.external_price_sensitivity,
+                external_price=self.external_price,
+            )
             self.customerChoice = self.customerchoice.customerchoice_pricing
             self.get_delivery_loc = self.get_delivery_loc_pricing
         else:
             #self.action_space_matrix = self.get_actions(pricing,self.n_parcelpoints)
-            self.customerchoice = customerchoicemodel(base_util,self.dist_scaler,self.utils.getdistance_euclidean,self.dist_matrix,self.n_unique_customer_locs)
+            self.customerchoice = customerchoicemodel(
+                base_util,
+                self.dist_scaler,
+                self.utils.getdistance_euclidean,
+                self.dist_matrix,
+                self.n_unique_customer_locs,
+                external_option=self.external_option,
+                external_base_util=self.external_base_util,
+                external_price_sensitivity=self.external_price_sensitivity,
+                external_price=self.external_price,
+            )
             self.customerChoice = self.customerchoice.customerchoice_offer
             self.get_delivery_loc = self.get_delivery_loc_offer
 
@@ -112,15 +142,17 @@ class Parcelpoint_py(object):
         self.steps = 0
         self.service_time = 0
         self.count_home_delivery = 0
+        self.count_external = 0
         self.total_prices = []
         self.total_discounts = []
 
-        self.data['x_coordinates'] = self.depot.x
-        self.data['y_coordinates'] =  self.depot.y
-        self.data['id'] = 0
-        self.data['time'] = 0
+        self.data['x_coordinates'] = np.array([self.depot.x])
+        self.data['y_coordinates'] =  np.array([self.depot.y])
+        self.data['id'] = np.array([0])
+        self.data['time'] = np.array([0])
         self.data['vehicle_capacity'] = self.veh_capacity
         self.data['num_vehicles'] = self.n_vehicles
+        self.data['last_choice_external'] = False
 
         self.count_dissatisfaction = 0
 
@@ -173,10 +205,19 @@ class Parcelpoint_py(object):
         return self.customerChoice(self.newCustomer,action,self.parcelPoints["parcelpoints"])
 
     def reopt_for_eval(self,data):
+        if len(np.atleast_1d(data['id'])) <= 1:
+            return 0.0
         if self.load_data:
             data["distance_matrix"] = get_dist_mat_HGS(self.dist_matrix,data['id'])
         _,cost = self.utils.reopt_HGS(data)
         return cost
+
+    def _distance_from_customer_home(self, loc):
+        if loc is None:
+            return 0.0
+        if self.load_data and len(self.dist_matrix) > 0:
+            return self.dist_matrix[self.newCustomer.home.id_num][loc.id_num]
+        return self.utils.getdistance_euclidean(self.newCustomer.home, loc)
 
     #ToDo: cleanup saving statistics, not efficient right now
     def step(self,action):
@@ -184,10 +225,18 @@ class Parcelpoint_py(object):
 
         #get the customer's choice of delivery location
         loc,accepted_pp,idx,price = self.get_delivery_loc(action)
+        self.data['last_choice_external'] = loc is None
         if price>0:
             self.total_prices.append(price)
-        else:
+        elif price<0:
             self.total_discounts.append(price)
+
+        if loc is None:
+            self.count_external += 1
+            stats = self.steps,self.count_home_delivery,self.service_time,self.total_prices,self.parcelPoints["parcelpoints"],0.0,self.total_discounts,price,self.count_external
+            self.curr_state = self.make_state()
+            return self.curr_state.copy(), self.is_terminal(), stats, self.data
+
         self.data['x_coordinates']= np.append(self.data['x_coordinates'],loc.x)
         self.data['y_coordinates'] = np.append(self.data['y_coordinates'],loc.y)
         self.data['id'] = np.append(self.data['id'],loc.id_num)
@@ -216,7 +265,7 @@ class Parcelpoint_py(object):
             self.fleet,_ = self.utils.reopt_HGS(self.data)
 
         #info for plots and statistics
-        stats = self.steps,self.count_home_delivery,self.service_time,self.total_prices,self.parcelPoints["parcelpoints"],self.dist_matrix[self.newCustomer.home.id_num][loc.id_num],self.total_discounts,price
+        stats = self.steps,self.count_home_delivery,self.service_time,self.total_prices,self.parcelPoints["parcelpoints"],self._distance_from_customer_home(loc),self.total_discounts,price,self.count_external
 
         #generate new customer arrival and return state info
         self.curr_state = self.make_state()
