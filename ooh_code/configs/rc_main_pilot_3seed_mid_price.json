@@ -1,0 +1,21 @@
+{
+  "config": {
+    "outside_option_util": -1.0,
+    "incentive_sens": -0.30,
+    "home_util": 1.4,
+    "k": 10,
+    "revenue": 50.0,
+    "fuel_cost": 0.6,
+    "home_failure": 0.1,
+    "learning_rate": 0.001,
+    "batch_size": 256,
+    "spo_warmup_episodes": 5,
+    "spo_rampup_episodes": 10,
+    "spo_loss_weight": 0.7
+  },
+  "static_pricing": {
+    "price_home": 2.0,
+    "price_pp": -5.0
+  },
+  "notes": "Three-seed pilot configuration. Midpoint price sensitivity between default and strong-price pilots."
+}

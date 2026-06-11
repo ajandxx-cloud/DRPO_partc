@@ -1,0 +1,45 @@
+# === 旧实验结果（排除） ===
+ooh_code/Experiments/Parcelpoint_py/pricing/Baseline/
+ooh_code/Experiments/Parcelpoint_py/pricing/DSPO/
+ooh_code/Experiments/Parcelpoint_py/pricing/DSPO_ManuSelection/
+ooh_code/Experiments/Parcelpoint_py/pricing/DSPO_MenuSelection/
+ooh_code/Experiments/Parcelpoint_py/pricing/DSPO_MenuSelection_MSE/
+ooh_code/Experiments/Parcelpoint_py/pricing/DSPO_MenuSelection_SPO/
+ooh_code/Experiments/Parcelpoint_py/pricing/DSPO_MenuSelection_SPO_A/
+ooh_code/Experiments/Parcelpoint_py/pricing/DSPO_Revenue/
+ooh_code/Experiments/Parcelpoint_py/pricing/DSPO_plus_SPO/
+ooh_code/Experiments/Parcelpoint_py/pricing/MenuSelection_SPO_A/
+ooh_code/Experiments/Parcelpoint_py/pricing/MenuSelection_SPO_B/
+ooh_code/Experiments/Parcelpoint_py/pricing/MenuSelection_SPO_C/
+
+# === 非 YJ 环境数据 ===
+ooh_code/Environments/OOH/Amazon_data/
+ooh_code/Environments/OOH/HombergerGehring_data/
+ooh_code/Environments/OOH/Beijing_bus/
+
+# === 非 YJ 数据 ===
+ooh_code/data/relative_paper/
+
+# === 超大文件 ===
+data/*.zip
+related_work/*.tar
+
+# === Claude / IDE 缓存 ===
+ooh_code/.claude/
+ooh_code/.idea/
+.claude/
+
+# === 本次不推送的目录 ===
+manuscript/
+references/
+related_work/
+figures/
+notes/
+planning/
+experiments/
+revision_notes/
+
+# === Python 缓存 ===
+__pycache__/
+.pytest_cache/
+*.pyc

@@ -1,0 +1,9 @@
+.idea
+venv/
+__pycache__/
+.codex/
+
+# Exclude all experiment results
+Experiments/
+
+# Old experiments excluded via root .gitignore

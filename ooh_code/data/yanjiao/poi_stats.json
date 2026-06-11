@@ -1,0 +1,20 @@
+{
+  "yanjiao_residential_poi_count": 490,
+  "yanjiao_bus_stop_count": 225,
+  "guomao_bus_stop_count": 64,
+  "recommended_meeting_points": 135,
+  "recommended_home_locations_low": 270,
+  "recommended_home_locations_high": 405,
+  "residential_breakdown": {
+    "120300": 225,
+    "120302": 225,
+    "120303": 29,
+    "120304": 11
+  },
+  "bus_stop_breakdown": {
+    "150700": 225,
+    "150702": 0
+  },
+  "search_polygon_yanjiao": "116.78,39.90|117.05,39.98",
+  "search_polygon_guomao": "116.44,39.89|116.47,39.92"
+}

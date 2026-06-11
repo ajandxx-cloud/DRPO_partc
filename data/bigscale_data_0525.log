@@ -1,0 +1,316 @@
+num cust loc len 240   NoHome
+Searching for:  Baseline
+Searching dir: /home/wenpeng/projects/python/ooh_code/Src/Algorithms
+Module path:  Src.Algorithms.Baseline Baseline
+Dynamically loaded from:  <class 'Src.Algorithms.Baseline.Baseline'>
+=====Configurations=====
+ Namespace(seed=1234, save_count=50, log_output='term_file', debug=True, save_model=True, timestamp='5|25|15:37:57', folder_suffix='default', experiment='run', algo_name='Baseline', gpu=0, env_name='Parcelpoint_py', max_episodes=10, max_steps
+_r=700, max_steps_p=0.5, load_data=True, instance='bus', data_seed=0, data_seed_test=1, pricing=True, max_price=2.0, min_price=-10.0, k=19, n_vehicles=12, veh_capacity=25, fraction_capacitated=0.38, parcelpoint_capacity=50, incentive_sens=-0.
+175, base_util=-2.0, home_util=-2.0, dissatisfaction=False, revenue=50, fuel_cost=0.6, truck_speed=30, clip_service_time=10, driver_wage=30, home_failure=0.1, failure_cost=10.0, reopt=10000000, hgs_reopt_time=1.1, hgs_final_time=1.5, grid_dim
+=11, hexa=False, n_input_layers=2, only_phase_one=False, initial_phase_epochs=10, buffer_size=500, batch_size=128, learning_rate=0.001, init_theta_cnn=1.0, cool_theta_cnn=0.001176470588235294, linearModel=False, optim='adam', use3d_conv=False
+, n_filters=8, dropout=0.05, init_theta=1.0, cool_theta=0.001176470588235294, save_routes=True, price_pp=-0.0, price_home=0.0, actor_lr=0.0001, critic_lr=0.01, state_lr=0.1, batch_size_ppo=100, fourier_coupled=True, fourier_order=3, hiddenLayerSize=16, hiddenActorLayerSize=8, gamma=0.999, gauss_variance=2, clipping_factor=0.2, td_lambda=0.95, policy_update_epochs=25, critic_update_epochs=25)
+State space: 4
+time required for 10 episodes :1.910341501235962
+time required for 10 episodes :17.132094860076904
+episode 0
+episode 1
+episode 2
+episode 3
+episode 4
+episode 5
+episode 6
+episode 7
+episode 8
+episode 9
+episode 10
+episode 11
+episode 12
+episode 13
+episode 14
+episode 15
+episode 16
+episode 17
+episode 18
+episode 19
+percentage home delivery:  0.0013377926421404682
+travel costs:  1601.28
+service costs:  3.2
+failure costs:  0.4
+/home/wenpeng/projects/python/ooh_code/venv/lib/python3.10/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/home/wenpeng/projects/python/ooh_code/venv/lib/python3.10/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/home/wenpeng/projects/python/ooh_code/venv/lib/python3.10/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
+  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+/home/wenpeng/projects/python/ooh_code/venv/lib/python3.10/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
+  arrmean = um.true_divide(arrmean, div, out=arrmean,
+/home/wenpeng/projects/python/ooh_code/venv/lib/python3.10/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+Avg. Charge:  nan std.:  nan
+Avg. Discount:  -0.0 std.:  0.0
+Charge revenue:  0.0
+Discount costs:  -0.0
+total costs:  1604.8799999999999
+average travelled by customers:  2907.6303873888983
+total timing:  49.198954343795776
+
+
+num cust loc len 240    NoStop
+Searching for:  Baseline
+Searching dir: /home/wenpeng/projects/python/ooh_code/Src/Algorithms
+Module path:  Src.Algorithms.Baseline Baseline
+Dynamically loaded from:  <class 'Src.Algorithms.Baseline.Baseline'>
+=====Configurations=====
+ Namespace(seed=1234, save_count=50, log_output='term_file', debug=True, save_model=True, timestamp='5|25|15:43:5', folder_suffix='default', experiment='run', algo_name='Baseline', gpu=0, env_name='Parcelpoint_py', max_episodes=10, max_steps_
+r=700, max_steps_p=0.5, load_data=True, instance='bus', data_seed=0, data_seed_test=1, pricing=True, max_price=2.0, min_price=-10.0, k=19, n_vehicles=12, veh_capacity=25, fraction_capacitated=0.38, parcelpoint_capacity=50, incentive_sens=-0.1
+75, base_util=-2.0, home_util=15.0, dissatisfaction=False, revenue=50, fuel_cost=0.6, truck_speed=30, clip_service_time=10, driver_wage=30, home_failure=0.1, failure_cost=10.0, reopt=10000000, hgs_reopt_time=1.1, hgs_final_time=1.5, grid_dim=
+11, hexa=False, n_input_layers=2, only_phase_one=False, initial_phase_epochs=10, buffer_size=500, batch_size=128, learning_rate=0.001, init_theta_cnn=1.0, cool_theta_cnn=0.001176470588235294, linearModel=False, optim='adam', use3d_conv=False,
+ n_filters=8, dropout=0.05, init_theta=1.0, cool_theta=0.001176470588235294, save_routes=True, price_pp=-0.0, price_home=0.0, actor_lr=0.0001, critic_lr=0.01, state_lr=0.1, batch_size_ppo=100, fourier_coupled=True, fourier_order=3, hiddenLayerSize=16, hiddenActorLayerSize=8, gamma=0.999, gauss_variance=2, clipping_factor=0.2, td_lambda=0.95, policy_update_epochs=25, critic_update_epochs=25)
+State space: 4
+time required for 10 episodes :1.9057912826538086
+time required for 10 episodes :17.687628030776978
+episode 0
+episode 1
+episode 2
+episode 3
+episode 4
+episode 5
+episode 6
+episode 7
+episode 8
+episode 9
+episode 10
+episode 11
+episode 12
+episode 13
+episode 14
+episode 15
+episode 16
+episode 17
+episode 18
+episode 19
+percentage home delivery:  1.0
+travel costs:  1528.7999999999997
+service costs:  2392.0
+failure costs:  299.0
+/home/wenpeng/projects/python/ooh_code/venv/lib/python3.10/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/home/wenpeng/projects/python/ooh_code/venv/lib/python3.10/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/home/wenpeng/projects/python/ooh_code/venv/lib/python3.10/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
+  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+/home/wenpeng/projects/python/ooh_code/venv/lib/python3.10/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
+  arrmean = um.true_divide(arrmean, div, out=arrmean,
+/home/wenpeng/projects/python/ooh_code/venv/lib/python3.10/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+Avg. Charge:  nan std.:  nan
+Avg. Discount:  -0.0 std.:  0.0
+Charge revenue:  0.0
+Discount costs:  -0.0
+total costs:  4219.8
+/home/wenpeng/projects/python/ooh_code/run.py:165: RuntimeWarning: invalid value encountered in scalar divide
+  print('average travelled by customers: ', distance / count_pp)
+average travelled by customers:  nan
+total timing:  50.15415716171265
+
+
+num cust loc len 240
+Searching for:  Baseline     NoPricing
+Searching dir: /home/wenpeng/projects/python/ooh_code/Src/Algorithms
+Module path:  Src.Algorithms.Baseline Baseline
+Dynamically loaded from:  <class 'Src.Algorithms.Baseline.Baseline'>
+=====Configurations=====
+ Namespace(seed=1234, save_count=50, log_output='term_file', debug=True, save_model=True, timestamp='5|25|15:51:13', folder_suffix='default', experiment='run', algo_name='Baseline', gpu=0, env_name='Parcelpoint_py', max_episodes=10, max_steps_r=700, max_steps_p=0.5, load_data=True, instance='bus', data_seed=0, data_seed_test=1, pricing=True, max_price=2.0, min_price=-10.0, k=19, n_vehicles=12, veh_capacity=25, fraction_capacitated=0.38, parcelpoint_capacity=50, incentive_sens=-0.175, base_util=-2.0, home_util=6.55, dissatisfaction=False, revenue=50, fuel_cost=0.6, truck_speed=30, clip_service_time=10, driver_wage=30, home_failure=0.1, failure_cost=10.0, reopt=10000000, hgs_reopt_time=1.1, hgs_final_time=1.5, grid_dim=11, hexa=False, n_input_layers=2, only_phase_one=False, initial_phase_epochs=10, buffer_size=500, batch_size=128, learning_rate=0.001, init_theta_cnn=1.0, cool_theta_cnn=0.001176470588235294, linearModel=False, optim='adam', use3d_conv=False, n_filters=8, dropout=0.05, init_theta=1.0, cool_theta=0.001176470588235294, save_routes=True, price_pp=-0.0, price_home=0.0, actor_lr=0.0001, critic_lr=0.01, state_lr=0.1, batch_size_ppo=100, fourier_coupled=True, fourier_order=3, hiddenLayerSize=16, hiddenActorLayerSize=8, gamma=0.999, gauss_variance=2, clipping_factor=0.2, td_lambda=0.95, policy_update_epochs=25, critic_update_epochs=25)
+State space: 4
+time required for 10 episodes :1.8923966884613037
+time required for 10 episodes :16.844034433364868
+episode 0
+episode 1
+episode 2
+episode 3
+episode 4
+episode 5
+episode 6
+episode 7
+episode 8
+episode 9
+episode 10
+episode 11
+episode 12
+episode 13
+episode 14
+episode 15
+episode 16
+episode 17
+episode 18
+episode 19
+percentage home delivery:  0.8934782608695652
+travel costs:  1554.6399999999999
+service costs:  2137.2
+failure costs:  267.15
+/home/wenpeng/projects/python/ooh_code/venv/lib/python3.10/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/home/wenpeng/projects/python/ooh_code/venv/lib/python3.10/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/home/wenpeng/projects/python/ooh_code/venv/lib/python3.10/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
+  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+/home/wenpeng/projects/python/ooh_code/venv/lib/python3.10/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
+  arrmean = um.true_divide(arrmean, div, out=arrmean,
+/home/wenpeng/projects/python/ooh_code/venv/lib/python3.10/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+Avg. Charge:  nan std.:  nan
+Avg. Discount:  -0.0 std.:  0.0
+Charge revenue:  0.0
+Discount costs:  -0.0
+total costs:  3958.9900000000002
+average travelled by customers:  3010.1726844583986
+total timing:  48.52231955528259
+
+num cust loc len 240    static pricing --revenue", default=50
+Searching for:  Baseline
+Searching dir: /home/wenpeng/projects/python/ooh_code/Src/Algorithms
+Module path:  Src.Algorithms.Baseline Baseline
+Dynamically loaded from:  <class 'Src.Algorithms.Baseline.Baseline'>
+=====Configurations=====
+ Namespace(seed=1234, save_count=50, log_output='term_file', debug=True, save_model=True, timestamp='5|25|16:0:15', folder_suffix='default', experiment='run', algo_name='Baseline', gpu=0, env_name='Parcelpoint_py', max_episodes=10, max_steps_
+r=700, max_steps_p=0.5, load_data=True, instance='bus', data_seed=0, data_seed_test=1, pricing=True, max_price=2.0, min_price=-10.0, k=19, n_vehicles=12, veh_capacity=25, fraction_capacitated=0.38, parcelpoint_capacity=50, incentive_sens=-0.1
+75, base_util=-2.0, home_util=6.55, dissatisfaction=False, revenue=50, fuel_cost=0.6, truck_speed=30, clip_service_time=10, driver_wage=30, home_failure=0.1, failure_cost=10.0, reopt=10000000, hgs_reopt_time=1.1, hgs_final_time=1.5, grid_dim=
+11, hexa=False, n_input_layers=2, only_phase_one=False, initial_phase_epochs=10, buffer_size=500, batch_size=128, learning_rate=0.001, init_theta_cnn=1.0, cool_theta_cnn=0.001176470588235294, linearModel=False, optim='adam', use3d_conv=False,
+ n_filters=8, dropout=0.05, init_theta=1.0, cool_theta=0.001176470588235294, save_routes=True, price_pp=-3.5, price_home=5.5, actor_lr=0.0001, critic_lr=0.01, state_lr=0.1, batch_size_ppo=100, fourier_coupled=True, fourier_order=3, hiddenLayerSize=16, hiddenActorLayerSize=8, gamma=0.999, gauss_variance=2, clipping_factor=0.2, td_lambda=0.95, policy_update_epochs=25, critic_update_epochs=25)
+State space: 4
+time required for 10 episodes :1.909886121749878
+time required for 10 episodes :17.079936265945435
+episode 0
+episode 1
+episode 2
+episode 3
+episode 4
+episode 5
+episode 6
+episode 7
+episode 8
+episode 9
+episode 10
+episode 11
+episode 12
+episode 13
+episode 14
+episode 15
+episode 16
+episode 17
+episode 18
+episode 19
+percentage home delivery:  0.6332775919732442
+travel costs:  1595.2800000000002
+service costs:  1514.8
+failure costs:  189.35
+Avg. Charge:  5.5 std.:  0.0
+Avg. Discount:  3.5 std.:  0.0
+Charge revenue:  1044.725
+Discount costs:  381.675
+total costs:  2636.38
+average travelled by customers:  2908.6444545869467
+total timing:  50.30274724960327
+
+
+num cust loc len 240
+Searching for:  DSPO
+Searching dir: /home/wenpeng/projects/python/ooh_code/Src/Algorithms
+Module path:  Src.Algorithms.DSPO DSPO
+Dynamically loaded from:  <class 'Src.Algorithms.DSPO.DSPO'>
+=====Configurations=====
+ Namespace(seed=1234, save_count=50, log_output='term_file', debug=True, save_model=True, timestamp='5|25|17:0:9', folder_suffix='default', experiment='run', algo_name='DSPO', gpu=0, env_name='Parcelpoint_py', max_episodes=10, max_steps_r=700
+, max_steps_p=0.5, load_data=True, instance='bus', data_seed=0, data_seed_test=1, pricing=True, max_price=2.0, min_price=-10.0, k=19, n_vehicles=12, veh_capacity=25, fraction_capacitated=0.38, parcelpoint_capacity=50, incentive_sens=-0.175, b
+ase_util=-2.0, home_util=3.85, dissatisfaction=False, revenue=50, fuel_cost=0.6, truck_speed=30, clip_service_time=10, driver_wage=30, home_failure=0.1, failure_cost=10.0, reopt=10000000, hgs_reopt_time=1.1, hgs_final_time=1.5, grid_dim=11, hexa=False, n_input_layers=2, only_phase_one=False, initial_phase_epochs=10, buffer_size=500, batch_size=128, learning_rate=0.001, init_theta_cnn=1.0, cool_theta_cnn=0.001176470588235294, linearModel=False, optim='adam', use3d_conv=False, n_filters=8, dropout=0.05, init_theta=1.0, cool_theta=0.001176470588235294, save_routes=True, price_pp=-3, price_home=5, actor_lr=0.0001, critic_lr=0.01, state_lr=0.1, batch_size_ppo=100, fourier_coupled=True, fourier_order=3, hiddenLayerSize=16, hiddenActorLayerSize=8, gamma=0.999, gauss_variance=2, clipping_factor=0.2, td_lambda=0.95, policy_update_epochs=25, critic_update_epochs=25)
+State space: 4
+time required for 10 episodes :1.9002282619476318
+Inital training phase started...
+Epoch 0 Huber loss:: 1927.7567291259766
+Epoch 1 Huber loss:: 1398.8148460388184
+Epoch 2 Huber loss:: 1133.4299443562825
+Epoch 3 Huber loss:: 986.8999156951904
+Epoch 4 Huber loss:: 885.128466796875
+Epoch 5 Huber loss:: 805.4275830586752
+Epoch 6 Huber loss:: 734.346809387207
+Epoch 7 Huber loss:: 679.1938800811768
+Epoch 8 Huber loss:: 632.4636107550728
+Epoch 9 Huber loss:: 593.7616493225098
+... Initial training phase terminated!
+Huber loss:  230.78370666503906
+Huber loss:  211.9776153564453
+Huber loss:  195.78817749023438
+Huber loss:  197.09933471679688
+Huber loss:  195.63748168945312
+Huber loss:  184.96826171875
+Huber loss:  170.93008422851562
+Huber loss:  179.41336059570312
+time required for 10 episodes :811.3516802787781
+episode 0
+episode 1
+episode 2
+episode 3
+episode 4
+episode 5
+episode 6
+episode 7
+episode 8
+episode 9
+episode 10
+episode 11
+episode 12
+episode 13
+episode 14
+episode 15
+episode 16
+episode 17
+episode 18
+episode 19
+percentage home delivery:  0.5372909698996655
+travel costs:  1611.44
+service costs:  1285.2
+failure costs:  160.65
+Avg. Charge:  1.9888510747185262 std.:  0.11549096537073196
+Avg. Discount:  8.708590733590734 std.:  2.122988814896744
+Charge revenue:  388.6215
+Discount costs:  902.21
+total costs:  3570.8785000000003
+average travelled by customers:  2903.2356134636266
+total timing:  2914.466477870941
+
+
+
+num cust loc len 240
+Searching for:  PPO
+Searching dir: /home/wenpeng/projects/python/ooh_code/Src/Algorithms
+Module path:  Src.Algorithms.PPO PPO
+Dynamically loaded from:  <class 'Src.Algorithms.PPO.PPO'>
+=====Configurations=====
+ Namespace(seed=1234, save_count=50, log_output='term_file', debug=True, save_model=True, timestamp='5|25|17:52:31', folder_suffix='default', experiment='run', algo_name='PPO', gpu=0, env_name='Parcelpoint_py', max_episodes=10, max_steps_r=700,
+ max_steps_p=0.5, load_data=True, instance='bus', data_seed=0, data_seed_test=1, pricing=True, max_price=2.0, min_price=-10.0, k=19, n_vehicles=12, veh_capacity=25, fraction_capacitated=0.38, parcelpoint_capacity=50, incentive_sens=-0.175, base
+_util=-2.0, home_util=3.85, dissatisfaction=False, revenue=50, fuel_cost=0.6, truck_speed=30, clip_service_time=10, driver_wage=30, home_failure=0.1, failure_cost=10.0, reopt=10000000, hgs_reopt_time=1.1, hgs_final_time=1.5, grid_dim=11, hexa=F
+alse, n_input_layers=2, only_phase_one=False, initial_phase_epochs=10, buffer_size=500, batch_size=128, learning_rate=0.001, init_theta_cnn=1.0, cool_theta_cnn=0.001176470588235294, linearModel=False, optim='adam', use3d_conv=False, n_filters=8
+, dropout=0.05, init_theta=1.0, cool_theta=0.001176470588235294, save_routes=True, price_pp=-3, price_home=5, actor_lr=0.0001, critic_lr=0.01, state_lr=0.1, batch_size_ppo=100, fourier_coupled=True, fourier_order=3, hiddenLayerSize=16, hiddenActorLayerSize=8, gamma=0.999, gauss_variance=2, clipping_factor=0.2, td_lambda=0.95, policy_update_epochs=25, critic_update_epochs=25)
+State space: 4
+State Low: tensor([0., 0.]) :: State High: tensor([150., 150.])
+State features:  [('dummy_param', torch.Size([1]))]
+Critic:  [('fc1.weight', torch.Size([16, 16])), ('fc1.bias', torch.Size([16])), ('fc2.weight', torch.Size([16, 186])), ('fc2.bias', torch.Size([16])), ('fc3.weight', torch.Size([1, 16])), ('fc3.bias', torch.Size([1]))]
+Actor:  [('fc1.weight', torch.Size([8, 16])), ('fc1.bias', torch.Size([8])), ('fc2.weight', torch.Size([8, 8])), ('fc2.bias', torch.Size([8])), ('fc3.weight', torch.Size([170, 8])), ('fc3.bias', torch.Size([170]))]
+time required for 10 :4.6673243045806885
+Episode 0 / current actor loss: 1.0782242952191898e-05
+Episode 0 / current critic loss: 5.3845097621281945e-06
+time required for 10 :19.891988039016724
+Episode 9 / current actor loss: 7.652244093467261e-05
+Episode 9 / current critic loss: 6.17926197083345e-05
+percentage home delivery:  0.15585284280936454
+travel costs:  1621.3600000000001
+service costs:  372.8
+failure costs:  46.6
+Avg. Charge:  1.3747138554216867 std.:  0.6911124104691022
+Avg. Discount:  4.903807373965388 std.:  2.1870436829764865
+Charge revenue:  45.640499999999996
+Discount costs:  1303.4320000000002
+total costs:  3298.5515
+average travelled by customers:  2895.4139368671827
+total timing:  57.019973039627075
+
+
