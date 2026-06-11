@@ -1,2 +1,0 @@
-If you want to run the Foresight heuristic benchmark, as adapted from Yang et al. (2016), you will need to generate historic routes. You can do so by running with the Baseline.py first. 
-Here, you need to use the same problem settings (and use a different seed compared to testing!). Also, you need to set the Baseline parameter, --save_routes to True.
